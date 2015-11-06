@@ -227,7 +227,7 @@ function push() {
 		error " git add $repo_name failed : $ret"
 		exit 1
 	fi
-    git commit -m"Push private $repo_name"
+    git commit -m "Push private $repo_name"
     ret=$?
     if [ $ret -ne 0 ]; then
 		error " git commit $repo_name failed : $ret"
