@@ -188,8 +188,9 @@ function req() {
 	#						生成证书请求时，如果不指定此选项，程序会提示用户来输入各个用户信息，包括国名、组织等信息，
 	#						如果采用此选择，则不需要用户输入了。比如：-subj /CN=china/OU=test/O=abc/CN=forxy，注意这里等属性必须大写。
     openssl req -x509 -nodes -days 100000 -newkey rsa:2048 -keyout "$key_root_dir/$git_private_key_name" -out "$key_root_dir/$git_public_key_name" -subj '/'
-	if [ $? -ne 0 ]; then
-		error " openssl smime req failed : $?"
+    ret=$?
+	if [ $ret -ne 0 ]; then
+		error " openssl smime req failed : $ret"
 		exit 1
 	fi 
     info "Pem files created. Please clone $private_root_dir from your Github to be under $git_wrap_repositories_abs_dir."
@@ -203,8 +204,9 @@ function clone_privateRoot_from_GitHub()
     cd "$git_wrap_repositories_abs_dir"
         
 	git clone $private_root_urn
-	if [ $? -ne 0 ]; then
-		error " git clone $private_root_urn failed : $?"
+	ret=$?
+	if [ $ret -ne 0 ]; then
+		error " git clone $private_root_urn failed : $ret"
 		exit 1
 	fi 
 }
@@ -469,6 +471,6 @@ do_work
 if [ $? -ne 0 ]; then
 	exit 1
 fi
-echo "cfg_force_mode=$cfg_force_mode"
+info "$0 $@ running success"
 read -n1 -p "Press any key to continue..."
 exit 0 

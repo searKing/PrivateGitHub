@@ -15,10 +15,10 @@ There must be a repository called "privateRoot" on your Github.
 1. Prepare:
 After you extract the github.sh & github.bash from this project into a certain directory(e.g. GithubRespository). 
 	git clone https://github.com/searKing/PrivateGitHub.git
+	sudo chmod a+x auto_support_bash_completion.sh
+	./auto_support_bash_completion.sh
 	cp PrivateGitHub/github.sh .
 	sudo chmod a+x github.sh
-	sudo cp PrivateGitHub/github.bash /etc/bash_completion.d/
-	source /etc/bash_completion.d/github.bash
 	rm PrivateGitHub -Rvf
 So GithubRespository looks like:
 |-GithubRespository
