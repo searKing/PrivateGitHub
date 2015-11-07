@@ -1,5 +1,96 @@
 #!/bin/bash
 
+function info() {
+	echo "[INFO]${LINENO}:$@"
+}
+
+function warn() {
+	echo "[WARN]${LINENO}:$@"
+}
+
+function error() {
+	echo "[ERROR]${LINENO}:$@"
+}
+#设置默认配置参数
+function set_default_cfg_param(){
+	#覆盖前永不提示
+	cfg_force_mode=0	
+}
+#git_repositories_dir --
+#          |- github.sh
+#			 |-keyRoot/							#key_root_dir
+#          	|- git.private.pem			#git_private_key_name
+#          	|- git.public.pem			#git_public_key_name
+#          |- publicRoot/					#public_root_dir
+#					|-repo_name
+#					|-tmp_name
+#          |- privateRoot/					#private_root_dir
+#					|-repo_name
+#设置默认变量参数
+function set_default_var_param(){	
+	git_wrap_shell_name="$(basename $0)" #获取当前脚本名称
+	#切换并获取当前脚本所在路径
+	git_wrap_repositories_abs_dir="$(cd `dirname $0`; pwd)"
+	
+	#私有库所在公有库的根目录，之后的私有库repo全部以加密文件的形式存放在该公有目录下
+	private_root_dir="privateRoot"	
+	private_root_urn="https://github.com/searKing/$private_root_dir.git"
+	public_root_dir="publicRoot" #私有库repo解密后存放的本地根目录
+	tmp_name="$repo_name.ttl1" #加密缓存变量名
+	key_root_dir="keyRoot" #加解密库公私钥所在目录
+	git_private_key_name="git.private.pem" #解密库私钥名称
+	git_public_key_name="git.public.pem" #加密库公钥名称
+	workspace_root_dir="workspace" #工作目录
+}
+#解析输入参数
+function parse_params_in() {
+	if [ "$#" -lt 1 ]; then   
+		cat << HELPEOF
+		use option -h to get more information .  
+HELPEOF
+		exit 1  
+	fi   	
+	set_default_cfg_param #设置默认配置参数	
+	set_default_var_param #设置默认变量参数
+	while getopts "fh" opt  
+	do  
+		case $opt in
+		f)
+			#覆盖前永不提示
+			cfg_force_mode=1
+			;;  
+		h)  
+			usage
+			exit 1  
+			;;  	
+		?)
+			error "$opt NEED param"
+			;;
+		*)    
+			;;  
+		esac  
+	done  
+	#去除options参数
+	shift $(($OPTIND - 1))
+	
+	if [ "$#" -lt 1 ]; then   
+		cat << HELPEOF
+		use option -h to get more information .  
+HELPEOF
+		exit 0  
+	fi   
+	#获取当前动作
+	git_wrap_action="$1"
+	#获取当前动作参数--私有库名称
+	repo_name="$2"	
+	
+	if ( [ "$git_wrap_action" == "push" ] || [ "$git_wrap_action" == "pull" ] ) && [ -z "$repo_name" ];
+	then 
+		error "Need a repository name."
+		exit 1
+	fi
+}
+#使用方法说明
 function usage() {
 	cat<<USAGEEOF	
 	NAME  
@@ -8,16 +99,18 @@ function usage() {
 		apkhack.sh [命令列表] [文件名]...   
 	DESCRIPTION  
 		$git_wrap_shell_name --将git仓库加密到托管在Github.com上的root git仓库中 
-			init	
-				Create git.private.pem and git.public.pem under ~/keys. Then create leaf directory under this direcotry and git-clone root from Github.
+			-h 
+				get help info
+			req	
+				Create git.private.pem and git.public.pem under ~/keys. Then create leaf directory under this direcotry and git-clone root from Github.		
+			create
+				create local public repo and workspace		
 				NOTE: A Github repo called root should be created on github.com beforehand.
 			push repo_name
 				Make directory repo_name under leaf/ to an compressed archived file into root/ with the same name.
 				Then add this archived file to git and push it to remote.
 			pull repo_name
 				Pull the update files from github to root. Decompress file repo_name under root/ to leaf/.
-			help 
-				get help info
 	AUTHOR 作者
     		由 searKing Chan 完成。
 			
@@ -30,18 +123,27 @@ function usage() {
 			https://github.com/searKing/GithubHub.git
 USAGEEOF
 }
-function info() {
-	echo "[INFO]${LINENO}:$@"
+function do_work(){
+	ret=0
+	case $git_wrap_action in
+	"req")
+		req
+		;;
+	"create")
+		create
+	 	;;
+	"push") 
+		push "$repo_name" 
+		;;
+	"pull") 
+		pull "$repo_name" 
+		;;
+	*) 
+		error "Invalid cmd: $git_wrap_action"
+		exit 1
+	 	;;
+	esac
 }
-
-function warn() {
-	echo "[WARN]${LINENO}:$@"
-}
-
-function error() {
-	echo "[ERROR]${LINENO}:$@"
-}
-
 #git_repositories_dir --
 #          |- github.sh
 #			 |-keyRoot/							#key_root_dir
@@ -54,14 +156,10 @@ function error() {
 #					|-repo_name
 #创建私有库非加密本地目录
 #创建非对称密钥对
-function init() {
+function req() {
 	#切换并获取当前脚本所在路径
     cd "$git_wrap_repositories_abs_dir"
 	
-    #创建私有库解密后存放的本地目录
-    if [ ! -d "$public_root_dir" ]; then
-		mkdir -p "$public_root_dir"
-    fi 
     #创建非对称密钥
     if [ ! -d "$key_root_dir" ]; then
 		mkdir -p "$key_root_dir"
@@ -69,8 +167,12 @@ function init() {
 	    
 	#加解密库公私钥名称
     if [ -e "$key_root_dir/$git_private_key_name" ] || [ -e "$key_root_dir/$git_public_key_name" ];	then 
-		error "Pem files exits with the same name as $git_private_key_name and/or $git_public_key_name. Exit."
-		exit 1
+    	if [ $cfg_force_mode -eq 0 ]; then
+			error "Pem files exits with the same name as $git_private_key_name and/or $git_public_key_name. Exit."
+			exit 1
+		else
+			info "force overwrite exist Pem files"
+    	fi
     fi
     info "Create pem files $git_private_key_name and $git_public_key_name under $key_root_dir"
     #调用openssl创建加解密用的密钥对，并设置证书请求
@@ -99,7 +201,7 @@ function clone_privateRoot_from_GitHub()
     info "create $repo_name under $private_root_dir"
 	#切换并获取当前脚本所在路径
     cd "$git_wrap_repositories_abs_dir"
-    private_root_urn="https://github.com/searKing/$private_root_dir.git"
+        
 	git clone $private_root_urn
 	if [ $? -ne 0 ]; then
 		error " git clone $private_root_urn failed : $?"
@@ -123,32 +225,21 @@ function create() {
 	#切换并获取当前脚本所在路径
     cd "$git_wrap_repositories_abs_dir"
     
-    #创建本地的未加密的私有库
-    if [ -z $repo_name ]; then
-    	error "$repo_name is NULL"
-    	exit 1
-    fi
-    
+    #创建私有库解密后存放的本地目录
+    if [ ! -d "$public_root_dir" ]; then
+		mkdir -p "$public_root_dir"
+    fi 
+        
 	#切换到私有仓库所在公有库的根目录
     cd "$public_root_dir"
     
     if [ -d $repo_name ]; then
-		read -n3 -p "$repo_name is already exist, press y to clear:" clear_confirm	
-		case $clear_confirm in
-		"y"|"[yY][eE][sS]")
-			rm -Rf $repo_name
-			 ;;
-		"n"|"[nN][oO]")
-			echo $clear_confirm
-			warn "cancel the operation of create $repo_name under $public_root_dir "
+    	if [ $cfg_force_mode -eq 0 ]; then
+			error "$repo_name files is already exist. Exit."
 			exit 1
-			 ;;
-		*) 
-			echo $clear_confirm
-			warn "cancel the operation of create $repo_name under $public_root_dir "
-			exit 1
-			 ;;
-		esac
+		else
+			info "force delete exist $repo_name files"			
+    	fi
     fi    
     
     mkdir -p $repo_name    	
@@ -187,7 +278,7 @@ function create() {
 		exit 1
 	fi
 	
-	info "create workspace $workspace_root_dir/$repo success" 
+	info "create workspace $workspace_root_dir/$repo_name success" 
 
 }
 
@@ -206,7 +297,10 @@ function create() {
 function push() {
 	
     info "Push $public_root_dir to Github"
-    
+    #从GitHub 克隆私有库所在公有库的根目录
+    if [ ! -d $private_root_dir ]; then
+    	clone_privateRoot_from_GitHub
+    fi
 	#切换并获取当前脚本所在路径
     cd "$git_wrap_repositories_abs_dir"
     
@@ -291,25 +385,31 @@ function push() {
 #使用openssl进行解密工作
 function pull() {
     info "Pull from Github"
-	#切换并获取当前脚本所在路径
-    cd "$git_wrap_repositories_abs_dir"
     
-	#检查本地的加密的私有仓库是否存在
-    if [ ! -d "$public_root_dir" ]; then 
-		error "$public_root_dir does NOT exist."
-		exit 1
+    #从GitHub 克隆私有库所在公有库的根目录
+    if [ ! -d $private_root_dir ]; then
+    	clone_privateRoot_from_GitHub
+    else    
+		#切换并获取当前脚本所在路径
+		cd "$git_wrap_repositories_abs_dir"
+		
+		#检查本地的加密的私有仓库是否存在
+		if [ ! -d "$public_root_dir" ]; then 
+			error "$public_root_dir does NOT exist."
+			exit 1
+		fi
+		
+		#切换到私有仓库所在公有库的根目录
+		cd "$private_root_dir"
+		#git pull的默认行为是git fetch + git merge
+		# git pull --rebase则是git fetch + git rebase.
+		git pull --rebase 
+		ret=$?
+		if [ $ret -ne 0 ]; then
+			error " git pull failed : $ret"
+			exit 1
+		fi
     fi
-    
-	#切换到私有仓库所在公有库的根目录
-    cd "$private_root_dir"
-	#git pull的默认行为是git fetch + git merge
-	# git pull --rebase则是git fetch + git rebase.
-    git pull --rebase 
-    ret=$?
-    if [ $ret -ne 0 ]; then
-		error " git pull failed : $ret"
-		exit 1
-	fi
     if [ ! -f "$repo_name" ];
 	then 
 		error "git pulled private $repo_name does NOT exist."
@@ -319,8 +419,8 @@ function pull() {
 	#切换并获取当前脚本所在路径
     cd "$git_wrap_repositories_abs_dir"
 	if [ ! -f "$key_root_dir/$git_private_key_name" ]; then
-		error "$key_root_dir/$git_private_key_name is NOT exist"
-		exit 1
+		error "$key_root_dir/$git_private_key_name is NOT exist.EXIT"
+		exit 1		
 	fi
     info "Decrypting $private_root_dir/$repo_name to $public_root_dir/$repo_name"
     info "$tmp_name"
@@ -360,87 +460,15 @@ function pull() {
 #脚本开始
 ################################################################################
 
-if [ "$#" -lt 1 ]; then   
-cat << HELPEOF
-use option -h to get more information .  
-HELPEOF
-exit 0  
-fi   
-while getopts "s:d:ht" opt  
-do  
-    case $opt in  
-    s)  
-    	#src=$OPTARG  
-    	;;  
-    d)  
-    	#dst=$OPTARG  
-    	;;  
-    h)  
-		usage
-    	exit 0  
-    ;;  
-    *)    
-    ;;  
-    esac  
-done  
-
-#git_repositories_dir --
-#          |- github.sh
-#			 |-keyRoot/							#key_root_dir
-#          	|- git.private.pem			#git_private_key_name
-#          	|- git.public.pem			#git_public_key_name
-#          |- publicRoot/					#public_root_dir
-#					|-repo_name
-#					|-tmp_name
-#          |- privateRoot/					#private_root_dir
-#					|-repo_name
-#切换并获取当前脚本所在路径
-git_wrap_repositories_abs_dir="$(cd `dirname $0`; pwd)"
-info "git_wrap_repositories_abs_dir=${git_wrap_repositories_abs_dir}"
-#获取当前脚本名称
-git_wrap_shell_name="$(basename $0)"
-#获取当前动作
-git_wrap_action="$1"
-#私有库所在公有库的根目录，之后的私有库repo全部以加密文件的形式存放在该公有目录下
-private_root_dir="privateRoot"
-#私有库repo解密后存放的本地根目录
-public_root_dir="publicRoot"
-#获取当前动作参数--私有库名称
-repo_name="$2"
-tmp_name="$repo_name.ttl1"
-if ( [ "$git_wrap_action" == "push" ] || [ "$git_wrap_action" == "pull" ] ) && [ -z "$repo_name" ];
-then 
-    error "Need a repository name."
-    exit 1
+parse_params_in $@
+if [ $? -ne 0 ]; then
+	exit 1
 fi
 
-#加解密库公私钥所在目录
-key_root_dir="keyRoot"
-#解密库私钥名称
-git_private_key_name="git.private.pem"
-#加密库公钥名称
-git_public_key_name="git.public.pem"
-
-#工作目录
-workspace_root_dir="workspace"
-
-case $git_wrap_action in
-"init")
-	init
-	 ;;
-"create")
-	create
-	 ;;
-"push") 
-	push "$repo_name" 
-	;;
-"pull") 
-	pull "$repo_name" 
-	;;
-*) 
-	usage
-	 ;;
-esac
-
+do_work
+if [ $? -ne 0 ]; then
+	exit 1
+fi
+echo "cfg_force_mode=$cfg_force_mode"
 read -n1 -p "Press any key to continue..."
 exit 0 
