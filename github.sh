@@ -31,15 +31,15 @@ function usage() {
 USAGEEOF
 }
 function info() {
-	echo "[INFO]$@"
+	echo "[INFO]${LINENO}:$@"
 }
 
 function warn() {
-	echo "[WARN]$@"
+	echo "[WARN]${LINENO}:$@"
 }
 
 function error() {
-	echo "[ERROR]$@"
+	echo "[ERROR]${LINENO}:$@"
 }
 
 #git_repositories_dir --
@@ -90,9 +90,22 @@ function init() {
 		error " openssl smime req failed : $?"
 		exit 1
 	fi 
-    info "Pem files created. Please clone $private_root_dir  from your Github to be under $git_wrap_repositories_abs_dir."
+    info "Pem files created. Please clone $private_root_dir from your Github to be under $git_wrap_repositories_abs_dir."
 }
 
+#从GitHub 克隆私有库所在公有库的根目录
+function clone_privateRoot_from_GitHub()
+{
+    info "create $repo_name under $private_root_dir"
+	#切换并获取当前脚本所在路径
+    cd "$git_wrap_repositories_abs_dir"
+    private_root_urn="https://github.com/searKing/$private_root_dir.git"
+	git clone $private_root_urn
+	if [ $? -ne 0 ]; then
+		error " git clone $private_root_urn failed : $?"
+		exit 1
+	fi 
+}
 
 #git_repositories_dir --
 #          |- github.sh
@@ -106,7 +119,7 @@ function init() {
 #					|-repo_name
 #创建本地的未加密的私有仓库
 function create() {	
-    info "create $repo_name under $publicRoot"
+    info "create $repo_name under $public_root_dir"
 	#切换并获取当前脚本所在路径
     cd "$git_wrap_repositories_abs_dir"
     
@@ -127,12 +140,12 @@ function create() {
 			 ;;
 		"n"|"[nN][oO]")
 			echo $clear_confirm
-			warn "cancel the operation of create $repo_name under $publicRoot "
+			warn "cancel the operation of create $repo_name under $public_root_dir "
 			exit 1
 			 ;;
 		*) 
 			echo $clear_confirm
-			warn "cancel the operation of create $repo_name under $publicRoot "
+			warn "cancel the operation of create $repo_name under $public_root_dir "
 			exit 1
 			 ;;
 		esac
@@ -153,9 +166,29 @@ function create() {
 		exit 1
 	fi 
 	
-    info "$repo_name created. Please clone $repo_name from your Local Git Repository"
+    info "$repo_name created. Please clone $repo_name from your Local Bare Git Repository"
     info "use cmd in your workspace:"
     info "git clone $git_wrap_repositories_abs_dir/$public_root_dir/$repo_name"
+	
+	
+	#切换并获取当前脚本所在路径
+    cd "$git_wrap_repositories_abs_dir"
+	if [ -d $workspace_root_dir/$repo_name ]; then
+		rm $workspace_root_dir/$repo_name
+	fi    
+	mkdir -p $workspace_root_dir/$repo_name
+	
+		#切换到未加密的repo工作目录
+    cd $workspace_root_dir/$repo_name
+    git clone $git_wrap_repositories_abs_dir/$public_root_dir/$repo_name
+    ret=$?
+    if [ $ret -ne 0 ]; then
+		error " git clone $public_root_dir/$repo_name: $ret"
+		exit 1
+	fi
+	
+	info "create workspace $workspace_root_dir/$repo success" 
+
 }
 
 #git_repositories_dir --
@@ -358,6 +391,8 @@ git_private_key_name="git.private.pem"
 #加密库公钥名称
 git_public_key_name="git.public.pem"
 
+#工作目录
+workspace_root_dir="workspace"
 case $git_wrap_action in
 "init")
 	init
