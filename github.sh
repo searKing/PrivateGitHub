@@ -354,6 +354,36 @@ function pull() {
     rm -r $public_root_dir/$tmp_name
     info "Finish pull $repo_name"
 }
+
+
+################################################################################
+#脚本开始
+################################################################################
+
+if [ "$#" -lt 1 ]; then   
+cat << HELPEOF
+use option -h to get more information .  
+HELPEOF
+exit 0  
+fi   
+while getopts "s:d:ht" opt  
+do  
+    case $opt in  
+    s)  
+    	#src=$OPTARG  
+    	;;  
+    d)  
+    	#dst=$OPTARG  
+    	;;  
+    h)  
+		usage
+    	exit 0  
+    ;;  
+    *)    
+    ;;  
+    esac  
+done  
+
 #git_repositories_dir --
 #          |- github.sh
 #			 |-keyRoot/							#key_root_dir
@@ -393,6 +423,7 @@ git_public_key_name="git.public.pem"
 
 #工作目录
 workspace_root_dir="workspace"
+
 case $git_wrap_action in
 "init")
 	init
