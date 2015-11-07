@@ -13,9 +13,19 @@ How this project work:
 There must be a repository called "privateRoot" on your Github.
 
 1. Prepare:
-After you extract the github.sh from this project into a certain directory(e.g. GithubRespository). So GithubRespository looks like:
+After you extract the github.sh & github.bash from this project into a certain directory(e.g. GithubRespository). 
+	git clone https://github.com/searKing/PrivateGitHub.git
+	cp PrivateGitHub/github.sh .
+	sudo chmod a+x github.sh
+	sudo cp PrivateGitHub/github.bash /etc/bash_completion.d/
+	source /etc/bash_completion.d/github.bash
+	rm PrivateGitHub -Rvf
+So GithubRespository looks like:
 |-GithubRespository
     |- github.sh
+|-/etc
+	|-bash_completion.d
+    	|- github.bash
 
 Then you should call "./github.sh req" to create pem files. After this, GithubRespository looks like this:
 |-GithubRespository
