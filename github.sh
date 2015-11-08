@@ -267,12 +267,12 @@ function create() {
 	#切换并获取当前脚本所在路径
     cd "$git_wrap_repositories_abs_dir"
 	if [ -d $workspace_root_dir/$repo_name ]; then
-		rm $workspace_root_dir/$repo_name
+		rm $workspace_root_dir/$repo_name -Rf
 	fi    
 	mkdir -p $workspace_root_dir/$repo_name
 	
 		#切换到未加密的repo工作目录
-    cd $workspace_root_dir/$repo_name
+    cd $workspace_root_dir/
     git clone $git_wrap_repositories_abs_dir/$public_root_dir/$repo_name
     ret=$?
     if [ $ret -ne 0 ]; then
