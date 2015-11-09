@@ -27,6 +27,10 @@ function _github_autocomplete
         COMPREPLY=( $(compgen -W "req create -m" -- $cur ))
         return 0
         ;;
+    -m)
+        COMPREPLY=( $(compgen -W "push" -- $cur ))
+        return 0
+        ;;
     *)
         local prev2="${COMP_WORDS[COMP_CWORD-2]}"
         if [ "$prev2" == "create" ] || [ "$prev2" == "push" ] || [ "$prev2" == "pull" ];then
