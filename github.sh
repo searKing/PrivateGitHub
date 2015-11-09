@@ -1,15 +1,15 @@
 #!/bin/bash
 
 function info() {
-	echo "[INFO]${LINENO}:$@"
+	echo "[INFO]$@"
 }
 
 function warn() {
-	echo "[WARN]${LINENO}:$@"
+	echo "[WARN]$@"
 }
 
 function error() {
-	echo "[ERROR]${LINENO}:$@"
+	echo "[ERROR]$@"
 }
 #设置默认配置参数
 function set_default_cfg_param(){
@@ -70,7 +70,7 @@ HELPEOF
 			exit 1  
 			;;  	
 		?)
-			error "$opt is Invalid"
+			error "${LINENO}:$opt is Invalid"
 			;;
 		*)    
 			;;  
@@ -92,9 +92,11 @@ HELPEOF
 	
 	if ( [ "$git_wrap_action" == "push" ] || [ "$git_wrap_action" == "pull" ] ) && [ -z "$repo_name" ];
 	then 
-		error "Need a repository name."
+		error "${LINENO}:Need a repository name."
 		exit 1
 	fi
+	
+	tmp_name="$repo_name.tmp" #加密缓存变量名
 }
 #使用方法说明
 function usage() {
@@ -145,7 +147,7 @@ function do_work(){
 		pull "$repo_name" 
 		;;
 	*) 
-		error "Invalid cmd: $git_wrap_action"
+		error "${LINENO}:Invalid cmd: $git_wrap_action"
 		exit 1
 	 	;;
 	esac
@@ -174,13 +176,13 @@ function req() {
 	#加解密库公私钥名称
     if [ -e "$key_root_dir/$git_private_key_name" ] || [ -e "$key_root_dir/$git_public_key_name" ];	then 
     	if [ $cfg_force_mode -eq 0 ]; then
-			error "Pem files exits with the same name as $git_private_key_name and/or $git_public_key_name. Exit."
+			error "${LINENO}:Pem files exits with the same name as $git_private_key_name and/or $git_public_key_name. Exit."
 			exit 1
 		else
-			info "force overwrite exist Pem files"
+			info "${LINENO}:force overwrite exist Pem files"
     	fi
     fi
-    info "Create pem files $git_private_key_name and $git_public_key_name under $key_root_dir"
+    info "${LINENO}:Create pem files $git_private_key_name and $git_public_key_name under $key_root_dir"
     #调用openssl创建加解密用的密钥对，并设置证书请求
 	#-x509：本选项将产生自签名的证书。一般用来做测试用，或者自己做个Root CA。证书的扩展项在 config文件里面指定。
 	#-nodes：如果该选项被指定，如果私钥文件已经被创建则不用加密。
@@ -196,40 +198,40 @@ function req() {
     openssl req -x509 -nodes -days 100000 -newkey rsa:2048 -keyout "$key_root_dir/$git_private_key_name" -out "$key_root_dir/$git_public_key_name" -subj '/'
     ret=$?
 	if [ $ret -ne 0 ]; then
-		error " openssl smime req failed : $ret"
+		error "${LINENO}:openssl smime req failed : $ret"
 		exit 1
 	fi 
-    info "Pem files created. Please clone $private_root_dir from your Github to be under $git_wrap_repositories_abs_dir."
+    info "${LINENO}:Pem files created. Please clone $private_root_dir from your Github to be under $git_wrap_repositories_abs_dir."
 }
 
 #从GitHub 克隆私有库所在公有库的根目录
 function clone_privateRoot_from_GitHub()
 {
-    info "create $repo_name under $private_root_dir"
+    info "${LINENO}:create $repo_name under $private_root_dir"
 	#切换并获取当前脚本所在路径
     cd "$git_wrap_repositories_abs_dir"
     
 	git clone $private_root_urn
 	ret=$?
 	if [ $ret -ne 0 ]; then
-		error " git clone $private_root_urn failed : $ret"
+		error "${LINENO}:git clone $private_root_urn failed : $ret"
 		exit 1
 	fi 
 }
 #将私有库所在公有库的根目录上传到GitHub仓库
 function push_privateRoot_to_GitHub()
 {
-    info "create $repo_name under $private_root_dir"
+    info "${LINENO}:create $repo_name under $private_root_dir"
 	#切换并获取当前脚本所在路径
     cd "$git_wrap_repositories_abs_dir"
 	
 	#切换到私有仓库所在公有库的根目录
     cd "$private_root_dir"
-    info "Commit $private_root_dir to Github automatically"
+    info "${LINENO}:Commit $private_root_dir to Github automatically"
     git commit -m "$commit_content"
     ret=$?
     if [ $ret -ne 0 ]; then
-		error " git commit $private_root_dir failed : $ret.EXIT"
+		error "${LINENO}:git commit $private_root_dir failed : $ret.EXIT"
 		exit 1
 	fi
 	#提交本地版本作为origin主机的maste分支
@@ -237,7 +239,7 @@ function push_privateRoot_to_GitHub()
     git push -u origin master
     ret=$?
     if [ $ret -ne 0 ]; then
-		error " git push $private_root_dir failed : $ret.EXIT"
+		error "${LINENO}:git push $private_root_dir failed : $ret.EXIT"
 		exit 1
 	fi
     info "Finish push $repo_name"
@@ -260,7 +262,7 @@ function create_workspace
     git clone $git_wrap_repositories_abs_dir/$public_root_dir/$repo_name
     ret=$?
     if [ $ret -ne 0 ]; then
-		error " git clone $public_root_dir/$repo_name: $ret"
+		error "${LINENO}:git clone $public_root_dir/$repo_name: $ret"
 		exit 1
 	fi	
 }
@@ -290,7 +292,7 @@ function create() {
     
     if [ -d $repo_name ]; then
     	if [ $cfg_force_mode -eq 0 ]; then
-			error "$repo_name files is already exist. Exit."
+			error "${LINENO}:$repo_name files is already exist. Exit."
 			exit 1
 		else
 			info "force delete exist $repo_name files"			
@@ -324,49 +326,77 @@ function create() {
 #压缩本地的未加密的私有仓库，或广义的私有文件
 function compress()
 {
-    info "Compress $repo_name from $public_root_dir to $private_root_dir"    
+    info "${LINENO}:Compress $repo_name from $tmp_name"    
 	#切换并获取当前脚本所在路径
     cd "$git_wrap_repositories_abs_dir"
 	#检查本地的未加密的私有仓库是否存在
     #这边，不限定为文件夹，文件也可以压缩
     if [ ! -e "$public_root_dir/$repo_name" ]; then
-		error " "$repo_name" to be compressed is NOT exist.EXIT"
+		error "${LINENO}: "$repo_name" to be compressed is NOT exist.EXIT"
 		exit 1    	
     fi
 	#删除临时操作目录中的老版本已压缩私有仓库
 	if [ -f "$public_root_dir/$tmp_name" ]; then
 		#删除老版本的压缩私有仓库
-		info "Remove old $tmp_name under $$public_root_dir/"
+		info "${LINENO}:Remove old $tmp_name under $$public_root_dir/"
     	rm -f "$public_root_dir/$tmp_name"    	
 	fi
     #将本地未加密的git仓库压缩打包到临时操作目录中去
     tar -czf "$public_root_dir/$tmp_name" "$public_root_dir/$repo_name"
     ret=$?
     if [ $ret -ne 0 ]; then
-		error " tar $repo_name : $ret"
+		error "${LINENO}:tar $repo_name : $ret"
 		exit 1
 	fi 
+}
+#解压本地的未加密的私有仓库，或广义的私有文件
+function extract()
+{
+    info "Extract $tmp_name  to $repo_name"    
+	#切换并获取当前脚本所在路径
+    cd "$git_wrap_repositories_abs_dir"
+	#检查本地的未加密的私有仓库是否存在
+    #这边，不限定为文件夹，文件也可以压缩
+    if [ ! -e "$public_root_dir/$tmp_name" ]; then
+		error "${LINENO}: "$tmp_name" to be extracted is NOT exist.EXIT"
+		exit 1    	
+    fi
+	#删除本地未加密库所在根目录中老版本的已解压私有仓库
+    if [ -d "$public_root_dir/$repo_name" ]; then 
+		#删除老版本的未加密私有仓库
+		info "${LINENO}:Remove old $repo_name under $public_root_dir/"
+		rm -Rf $public_root_dir/$repo_name
+    fi
+     #将从远程下载的已加密的git仓库临时压缩包解压缩到本地未加密库所在根目录中去
+    tar -xzf "$public_root_dir/$tmp_name" "$public_root_dir/$repo_name" 
+    ret=$?
+    if [ $ret -ne 0 ]; then
+		error "${LINENO}: untar $public_root_dir/$tmp_name: $ret.EXIT"
+		exit 1
+	fi 
+    rm -r $public_root_dir/$tmp_name
 }
 #加密本地的未加密的私有仓库
 function encrypt()
 {
-    info "Push $repo_name to Github"
+    
+    info "Encrypting $public_root_dir/$tmp_name to $private_root_dir/$repo_name "
     
 	#切换并获取当前脚本所在路径
     cd "$git_wrap_repositories_abs_dir"
     
     if [ ! -e "$public_root_dir/$tmp_name" ]; then
-		error " "$repo_name" to be compressed is NOT exist.EXIT"
+		error "${LINENO}: "$repo_name" to be encrypted is NOT exist.EXIT"
 		exit 1    	
     fi
 	if [ ! -f "$key_root_dir/$git_public_key_name" ]; then
-		error " $key_root_dir/$git_public_key_name is NOT exist.EXIT"
+		error "${LINENO}: $key_root_dir/$git_public_key_name is NOT exist.EXIT"
 		exit 1
 	fi
 	#删除root公开git仓库中的老版本已加密私有仓库
 	if [ -f $private_root_dir/$repo_name ]; then
 		#删除老版本的加密私有仓库
-		info "Remove old $repo_name under $private_root_dir/"
+		info "${LINENO}:Remove old $repo_name under $private_root_dir/"
     	rm -f $private_root_dir/$repo_name    	
 	fi
 
@@ -381,12 +411,59 @@ function encrypt()
     openssl smime -encrypt -aes256 -binary -outform DEM -in "$public_root_dir/$tmp_name" -out "$private_root_dir/$repo_name" "$key_root_dir/$git_public_key_name" 
     ret=$?
     if [ $ret -ne 0 ]; then
-		error " openssl smimee  -encrypt failed : $ret.EXIT"
+		error "${LINENO}: openssl smimee  -encrypt failed : $ret.EXIT"
 		exit 1
 	fi
 	if [ -d $public_root_dir/$tmp_name ]; then
     	 rm -f "$public_root_dir/$tmp_name"
 	fi	
+}
+
+#解密本地的已加密的私有仓库
+function decrypt()
+{
+    
+    info "${LINENO}:Decrypting $private_root_dir/$repo_name to $public_root_dir/$tmp_name"
+    
+	#切换并获取当前脚本所在路径
+    cd "$git_wrap_repositories_abs_dir"
+    
+    if [ ! -e "$private_root_dir/$repo_name" ]; then
+		error "${LINENO}: "$repo_name" to be decrypted is NOT exist.EXIT"
+		exit 1    	
+    fi
+    #检查私有密钥
+	if [ ! -f "$key_root_dir/$git_private_key_name" ]; then
+		error "${LINENO}:private key : $key_root_dir/$git_private_key_name is NOT exist.EXIT"
+		exit 1		
+	fi
+	#删除root公开git仓库中的老版本已解密未解压的私有仓库
+	if [ -f $public_root_dir/$tmp_name ]; then
+		#删除老版本的加密私有仓库
+		info "${LINENO}:Remove old $tmp_name under $public_root_dir/"
+    	rm -f $public_root_dir/$tmp_name    	
+	fi
+
+	#检查本地的已解密的私有仓库是否存在
+	if [ ! -d "$public_root_dir" ]; then 
+		mkdir -p $public_root_dir
+	fi
+	
+	
+    #使用证书解密文件
+	#-decrypt：用提供的证书和私钥值来解密邮件信息值。从输入文件中获取到已经加密了的MIME格式的邮件信息值。解密的邮件信息值被保存到输出文件中。
+	#-binary：不转换二进制消息到文本消息值
+	#-inform SMIME|PEM|DER：输入消息的格式。一般为SMIME|PEM|DER三种。默认的是SMIME。
+	#-inkey file：私钥存放地址，主要用于签名或解密数据。这个私钥值必须匹配相应的证书信息。如果这个选项没有被指定，私钥必须包含到证书路径中（-recip、-signer）。
+	#-in file：输入消息值，它一般为加密了的以及签名了的MINME类型的消息值。
+	#-out file：已经被解密或验证通过的数据的保存位置。
+	#
+    openssl smime -decrypt -binary -inform DEM -inkey "$key_root_dir/$git_private_key_name" -in "$private_root_dir/$repo_name" -out "$public_root_dir/$tmp_name"
+    ret=$?
+    if [ $ret -ne 0 ]; then
+		error "${LINENO}: openssl smimee  -decrypt failed : $ret.EXIT"
+		exit 1
+	fi
 }
 #git_repositories_dir --
 #          |- github.sh
@@ -402,7 +479,7 @@ function encrypt()
 #使用openssl进行加密工作
 function push() {
 	
-    info "Push $repo_name to Github"
+    info "${LINENO}:Push $repo_name to Github"
     
 	#切换并获取当前脚本所在路径
     cd "$git_wrap_repositories_abs_dir"
@@ -430,11 +507,11 @@ function push() {
 	#切换到私有仓库所在公有库的根目录
     cd "$private_root_dir"
     if [ ! -z $repo_name ]; then
-		info "Add to Github"
+		info "${LINENO}:Add to Github"
 		git add "$repo_name"
 		ret=$?
 		if [ $ret -ne 0 ]; then
-			error " git add $repo_name failed : $ret.EXIT"
+			error "${LINENO}: git add $repo_name failed : $ret.EXIT"
 			exit 1
 		fi
 	fi
@@ -444,7 +521,7 @@ function push() {
     if [ $? -ne 0 ]; then
 		exit 1
 	fi
-    info "Finish push $repo_name"
+    info "${LINENO}:Finish push $repo_name"
 }    
 
 #git_repositories_dir --
@@ -460,7 +537,7 @@ function push() {
 #从Github服务器中下载已加密的私有仓库，进行解压缩、解密
 #使用openssl进行解密工作
 function pull() {
-    info "Pull $repo_name from Github"
+    info "${LINENO}:Pull $repo_name from Github"
     
 	#切换并获取当前脚本所在路径
     cd "$git_wrap_repositories_abs_dir"
@@ -481,65 +558,30 @@ function pull() {
 		git pull --rebase 
 		ret=$?
 		if [ $ret -ne 0 ]; then
-			error " git pull failed : $ret"
+			error "${LINENO}: git pull failed : $ret"
 			exit 1
 		fi
     fi
 	#切换并获取当前脚本所在路径
     cd "$git_wrap_repositories_abs_dir"
-    if [ ! -f "$private_root_dir/$repo_name" ]; then 
-		error "git pulled private $repo_name does NOT exist.EXIT"
-		exit 1
-    fi
     
-	#切换并获取当前脚本所在路径
-    cd "$git_wrap_repositories_abs_dir"
-    
-	#检查本地的加密的私有仓库是否存在
-	if [ ! -d "$public_root_dir" ]; then 
-		mkdir -p $public_root_dir
-	fi
-    
-	if [ ! -f "$key_root_dir/$git_private_key_name" ]; then
-		error "$key_root_dir/$git_private_key_name is NOT exist.EXIT"
-		exit 1		
-	fi
-    info "Decrypting $private_root_dir/$repo_name to $public_root_dir/$repo_name"
-    info "$tmp_name"
-    #使用证书解密文件
-	#-decrypt：用提供的证书和私钥值来解密邮件信息值。从输入文件中获取到已经加密了的MIME格式的邮件信息值。解密的邮件信息值被保存到输出文件中。
-	#-binary：不转换二进制消息到文本消息值
-	#-inform SMIME|PEM|DER：输入消息的格式。一般为SMIME|PEM|DER三种。默认的是SMIME。
-	#-inkey file：私钥存放地址，主要用于签名或解密数据。这个私钥值必须匹配相应的证书信息。如果这个选项没有被指定，私钥必须包含到证书路径中（-recip、-signer）。
-	#-in file：输入消息值，它一般为加密了的以及签名了的MINME类型的消息值。
-	#-out file：已经被解密或验证通过的数据的保存位置。
-	#
-    openssl smime -decrypt -binary -inform DEM -inkey "$key_root_dir/$git_private_key_name" -in "$private_root_dir/$repo_name" -out "$public_root_dir/$tmp_name"
-    ret=$?
-    if [ $ret -ne 0 ]; then
-		error " openssl smimee  -decrypt failed : $ret.EXIT"
-		exit 1
-	fi
-	
-    if [ -d "$public_root_dir/$repo_name" ]; then 
-		#删除老版本的未加密私有仓库
-		info "Remove old $repo_name under $public_root_dir/"
-		rm -Rf $public_root_dir/$repo_name
-    fi
-     #将从远程下载的已加密的git仓库临时压缩包解压缩到本地未加密库所在根目录中去
-    tar -xzf "$public_root_dir/$tmp_name" "$public_root_dir/$repo_name" 
-    ret=$?
-    if [ $ret -ne 0 ]; then
-		error " untar $public_root_dir/$tmp_name: $ret.EXIT"
+	#解密本地的已加密的私有仓库
+	decrypt    
+    if [ $? -ne 0 ]; then
 		exit 1
 	fi 
-    rm -r $public_root_dir/$tmp_name
+    #解压本地的未加密的私有仓库，或广义的私有文件
+	extract
+    if [ $? -ne 0 ]; then
+		exit 1
+	fi 
+	
     #创建工作空间并从本地未加密私有仓库clone最新副本
 	create_workspace
 	if [ $? -ne 0 ]; then
 		exit 1
 	fi 
-    info "Finish pull $repo_name"
+    info "${LINENO}:Finish pull $repo_name"
 }
 
 
