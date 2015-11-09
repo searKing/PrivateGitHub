@@ -216,6 +216,33 @@ function clone_privateRoot_from_GitHub()
 		exit 1
 	fi 
 }
+#将私有库所在公有库的根目录上传到GitHub仓库
+function push_privateRoot_to_GitHub()
+{
+    info "create $repo_name under $private_root_dir"
+	#切换并获取当前脚本所在路径
+    cd "$git_wrap_repositories_abs_dir"
+	
+	#切换到私有仓库所在公有库的根目录
+    cd "$private_root_dir"
+    info "Commit $private_root_dir to Github automatically"
+    git commit -m "$commit_content"
+    ret=$?
+    if [ $ret -ne 0 ]; then
+		error " git commit $private_root_dir failed : $ret.EXIT"
+		exit 1
+	fi
+	#提交本地版本作为origin主机的maste分支
+	#之后如果不重置-u的参数，则默认就是最后设置的主机和分支
+    git push -u origin master
+    ret=$?
+    if [ $ret -ne 0 ]; then
+		error " git push $private_root_dir failed : $ret.EXIT"
+		exit 1
+	fi
+    info "Finish push $repo_name"
+	
+}
 
 #创建工作空间并从本地未加密私有仓库clone最新副本
 function create_workspace
@@ -294,7 +321,73 @@ function create() {
 		exit 1
 	fi 
 }
+#压缩本地的未加密的私有仓库，或广义的私有文件
+function compress()
+{
+    info "Compress $repo_name from $public_root_dir to $private_root_dir"    
+	#切换并获取当前脚本所在路径
+    cd "$git_wrap_repositories_abs_dir"
+	#检查本地的未加密的私有仓库是否存在
+    #这边，不限定为文件夹，文件也可以压缩
+    if [ ! -e "$public_root_dir/$repo_name" ]; then
+		error " "$repo_name" to be compressed is NOT exist.EXIT"
+		exit 1    	
+    fi
+	#删除临时操作目录中的老版本已压缩私有仓库
+	if [ -f "$public_root_dir/$tmp_name" ]; then
+		#删除老版本的压缩私有仓库
+		info "Remove old $tmp_name under $$public_root_dir/"
+    	rm -f "$public_root_dir/$tmp_name"    	
+	fi
+    #将本地未加密的git仓库压缩打包到临时操作目录中去
+    tar -czf "$public_root_dir/$tmp_name" "$public_root_dir/$repo_name"
+    ret=$?
+    if [ $ret -ne 0 ]; then
+		error " tar $repo_name : $ret"
+		exit 1
+	fi 
+}
+#加密本地的未加密的私有仓库
+function encrypt()
+{
+    info "Push $repo_name to Github"
+    
+	#切换并获取当前脚本所在路径
+    cd "$git_wrap_repositories_abs_dir"
+    
+    if [ ! -e "$public_root_dir/$tmp_name" ]; then
+		error " "$repo_name" to be compressed is NOT exist.EXIT"
+		exit 1    	
+    fi
+	if [ ! -f "$key_root_dir/$git_public_key_name" ]; then
+		error " $key_root_dir/$git_public_key_name is NOT exist.EXIT"
+		exit 1
+	fi
+	#删除root公开git仓库中的老版本已加密私有仓库
+	if [ -f $private_root_dir/$repo_name ]; then
+		#删除老版本的加密私有仓库
+		info "Remove old $repo_name under $private_root_dir/"
+    	rm -f $private_root_dir/$repo_name    	
+	fi
 
+    #使用证书加密文件
+	#-encrypt：用给定的接受者的证书加密邮件信息。输入文件是一个消息值，用于加密。输出文件是一个已经被加密了的MIME格式的邮件信息。
+	#-des, -des3, -seed, -rc2-40, -rc2-64, -rc2-128, -aes128, -aes192, -aes256，-camellia128, -camellia192, -camellia256：指定的私钥保护加密算法。默认的算法是rc2-40。
+	#-binary：不转换二进制消息到文本消息值
+	#-outform SMIME|PEM|DER：输出格式。一般为SMIME、PEM、DER三种。默认的格式是SMIME
+	#-in file：输入消息值，它一般为加密了的以及签名了的MINME类型的消息值。
+	#-out file：已经被解密或验证通过的数据的保存位置。
+	#
+    openssl smime -encrypt -aes256 -binary -outform DEM -in "$public_root_dir/$tmp_name" -out "$private_root_dir/$repo_name" "$key_root_dir/$git_public_key_name" 
+    ret=$?
+    if [ $ret -ne 0 ]; then
+		error " openssl smimee  -encrypt failed : $ret.EXIT"
+		exit 1
+	fi
+	if [ -d $public_root_dir/$tmp_name ]; then
+    	 rm -f "$public_root_dir/$tmp_name"
+	fi	
+}
 #git_repositories_dir --
 #          |- github.sh
 #			 |-keyRoot/							#key_root_dir
@@ -314,11 +407,6 @@ function push() {
 	#切换并获取当前脚本所在路径
     cd "$git_wrap_repositories_abs_dir"
     
-	#检查本地的未加密的私有仓库是否存在
-    if [ ! -d "$public_root_dir/$repo_name" ]; then 
-		error "public $repo_name does NOT exist.EXIT"
-		exit 1
-    fi
     #从GitHub 克隆私有库所在公有库的根目录
     if [ ! -d $private_root_dir ]; then
     	clone_privateRoot_from_GitHub
@@ -327,63 +415,33 @@ function push() {
 		fi 
     	
     fi
-
-    #删除root公开git仓库中的老版本已加密私有仓库
-	if [ -f $private_root_dir/$repo_name ]; then
-		#删除老版本的加密私有仓库
-		info "Remove old $repo_name under $private_root_dir/"
-    	rm -f $private_root_dir/$repo_name    	
-	fi
-    info "Encrypt $repo_name from $public_root_dir to $private_root_dir"
-    #将本地未加密的git仓库压缩打包到叶子节点临时操作目录中去
-    tar -czf "$public_root_dir/$tmp_name" "$public_root_dir/$repo_name"
-    ret=$?
-    if [ $ret -ne 0 ]; then
-		error " tar $public_root_dir/$repo_name: $ret"
+    
+	#压缩本地的未加密的私有仓库，或广义的私有文件
+	compress
+    if [ $? -ne 0 ]; then
 		exit 1
 	fi 
-	if [ ! -f "$key_root_dir/$git_public_key_name" ]; then
-		error " $key_root_dir/$git_public_key_name is NOT exist.EXIT"
-		exit 1
-	fi
     #使用证书加密文件
-	#-encrypt：用给定的接受者的证书加密邮件信息。输入文件是一个消息值，用于加密。输出文件是一个已经被加密了的MIME格式的邮件信息。
-	#-des, -des3, -seed, -rc2-40, -rc2-64, -rc2-128, -aes128, -aes192, -aes256，-camellia128, -camellia192, -camellia256：指定的私钥保护加密算法。默认的算法是rc2-40。
-	#-binary：不转换二进制消息到文本消息值
-	#-outform SMIME|PEM|DER：输出格式。一般为SMIME、PEM、DER三种。默认的格式是SMIME
-	#-in file：输入消息值，它一般为加密了的以及签名了的MINME类型的消息值。
-	#-out file：已经被解密或验证通过的数据的保存位置。
-	#
-    openssl smime -encrypt -aes256 -binary -outform DEM -in "$public_root_dir/$tmp_name" -out "$private_root_dir/$repo_name" "$key_root_dir/$git_public_key_name" 
-    ret=$?
-    if [ $ret -ne 0 ]; then
-		error " openssl smimee  -encrypt failed : $ret.EXIT"
+	encrypt
+    if [ $? -ne 0 ]; then
 		exit 1
-	fi
-	if [ -d $public_root_dir/$tmp_name ]; then
-    	 rm -f "$public_root_dir/$tmp_name"
-	fi
+	fi 
+	
 	#切换到私有仓库所在公有库的根目录
     cd "$private_root_dir"
-    info "Add to Github"
-    git add "$repo_name"
-    ret=$?
-    if [ $ret -ne 0 ]; then
-		error " git add $repo_name failed : $ret.EXIT"
-		exit 1
+    if [ ! -z $repo_name ]; then
+		info "Add to Github"
+		git add "$repo_name"
+		ret=$?
+		if [ $ret -ne 0 ]; then
+			error " git add $repo_name failed : $ret.EXIT"
+			exit 1
+		fi
 	fi
-    git commit -m "$commit_content"
-    ret=$?
-    if [ $ret -ne 0 ]; then
-		error " git commit $repo_name failed : $ret.EXIT"
-		exit 1
-	fi
-	#提交本地版本作为origin主机的maste分支
-	#之后如果不重置-u的参数，则默认就是最后设置的主机和分支
-    git push -u origin master
-    ret=$?
-    if [ $ret -ne 0 ]; then
-		error " git push $repo_name failed : $ret.EXIT"
+    
+	#将私有库所在公有库的根目录上传到GitHub仓库
+	push_privateRoot_to_GitHub
+    if [ $? -ne 0 ]; then
 		exit 1
 	fi
     info "Finish push $repo_name"
