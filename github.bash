@@ -10,21 +10,21 @@ function _github_autocomplete
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="req create push pull -"
+    opts="req create push pull -f -m"
 
     case "$prev" in
     req)
         COMPREPLY=()
         return 0
         ;;
-    create | push | pull)
+    create | push | pull | -m)
     	#定位当前目录的文件
     	#http://cnswww.cns.cwru.edu/php/chet/bash/NEWS.
         COMPREPLY=( $(compgen -o default -o plusdirs -f -- $cur) )
         return 0
         ;;
-    -)
-        COMPREPLY=( $(compgen -W "f" -- $cur) )
+    -f)
+        COMPREPLY=( $(compgen -W "req create -m" -- $cur ))
         return 0
         ;;
     *)

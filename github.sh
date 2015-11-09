@@ -41,6 +41,8 @@ function set_default_var_param(){
 	git_private_key_name="git.private.pem" #解密库私钥名称
 	git_public_key_name="git.public.pem" #加密库公钥名称
 	workspace_root_dir="workspace" #工作目录
+	
+	commit_content="commit on $(date):Push private $repo_name"
 }
 #解析输入参数
 function parse_params_in() {
@@ -52,19 +54,23 @@ HELPEOF
 	fi   	
 	set_default_cfg_param #设置默认配置参数	
 	set_default_var_param #设置默认变量参数
-	while getopts "fh" opt  
+	while getopts "fm:h" opt  
 	do  
 		case $opt in
 		f)
 			#覆盖前永不提示
 			cfg_force_mode=1
 			;;  
+		m)
+			#commit注释
+			commit_content=$OPTARG
+			;;  
 		h)  
 			usage
 			exit 1  
 			;;  	
 		?)
-			error "$opt NEED param"
+			error "$opt is Invalid"
 			;;
 		*)    
 			;;  
@@ -202,7 +208,7 @@ function clone_privateRoot_from_GitHub()
     info "create $repo_name under $private_root_dir"
 	#切换并获取当前脚本所在路径
     cd "$git_wrap_repositories_abs_dir"
-        
+    
 	git clone $private_root_urn
 	ret=$?
 	if [ $ret -ne 0 ]; then
@@ -211,6 +217,26 @@ function clone_privateRoot_from_GitHub()
 	fi 
 }
 
+#创建工作空间并从本地未加密私有仓库clone最新副本
+function create_workspace
+{	
+	info "create&clone workspace $repo_name to $workspace_root_dir/" 
+	#切换并获取当前脚本所在路径
+    cd "$git_wrap_repositories_abs_dir"
+	if [ -d $workspace_root_dir/$repo_name ]; then
+		rm $workspace_root_dir/$repo_name -Rf
+	fi    
+	mkdir -p $workspace_root_dir/$repo_name
+	
+	#切换到未加密的repo工作目录
+    cd $workspace_root_dir/
+    git clone $git_wrap_repositories_abs_dir/$public_root_dir/$repo_name
+    ret=$?
+    if [ $ret -ne 0 ]; then
+		error " git clone $public_root_dir/$repo_name: $ret"
+		exit 1
+	fi	
+}
 #git_repositories_dir --
 #          |- github.sh
 #			 |-keyRoot/							#key_root_dir
@@ -262,26 +288,11 @@ function create() {
     info "$repo_name created. Please clone $repo_name from your Local Bare Git Repository"
     info "use cmd in your workspace:"
     info "git clone $git_wrap_repositories_abs_dir/$public_root_dir/$repo_name"
-	
-	
-	#切换并获取当前脚本所在路径
-    cd "$git_wrap_repositories_abs_dir"
-	if [ -d $workspace_root_dir/$repo_name ]; then
-		rm $workspace_root_dir/$repo_name -Rf
-	fi    
-	mkdir -p $workspace_root_dir/$repo_name
-	
-		#切换到未加密的repo工作目录
-    cd $workspace_root_dir/
-    git clone $git_wrap_repositories_abs_dir/$public_root_dir/$repo_name
-    ret=$?
-    if [ $ret -ne 0 ]; then
-		error " git clone $public_root_dir/$repo_name: $ret"
+	#创建工作空间并从本地未加密私有仓库clone最新副本
+	create_workspace
+	if [ $? -ne 0 ]; then
 		exit 1
-	fi
-	
-	info "create workspace $workspace_root_dir/$repo_name success" 
-
+	fi 
 }
 
 #git_repositories_dir --
@@ -298,25 +309,30 @@ function create() {
 #使用openssl进行加密工作
 function push() {
 	
-    info "Push $public_root_dir to Github"
-    #从GitHub 克隆私有库所在公有库的根目录
-    if [ ! -d $private_root_dir ]; then
-    	clone_privateRoot_from_GitHub
-    fi
+    info "Push $repo_name to Github"
+    
 	#切换并获取当前脚本所在路径
     cd "$git_wrap_repositories_abs_dir"
     
 	#检查本地的未加密的私有仓库是否存在
     if [ ! -d "$public_root_dir/$repo_name" ]; then 
-		error "public $repo_name does NOT exist."
+		error "public $repo_name does NOT exist.EXIT"
 		exit 1
     fi
+    #从GitHub 克隆私有库所在公有库的根目录
+    if [ ! -d $private_root_dir ]; then
+    	clone_privateRoot_from_GitHub
+		if [ $? -ne 0 ]; then
+			exit 1
+		fi 
+    	
+    fi
 
-	#删除老版本的加密私有仓库
-    info "Remove $repo_name under $public_root_dir/"
     #删除root公开git仓库中的老版本已加密私有仓库
 	if [ -f $private_root_dir/$repo_name ]; then
-    	rm -f $private_root_dir/$repo_name
+		#删除老版本的加密私有仓库
+		info "Remove old $repo_name under $private_root_dir/"
+    	rm -f $private_root_dir/$repo_name    	
 	fi
     info "Encrypt $repo_name from $public_root_dir to $private_root_dir"
     #将本地未加密的git仓库压缩打包到叶子节点临时操作目录中去
@@ -327,7 +343,7 @@ function push() {
 		exit 1
 	fi 
 	if [ ! -f "$key_root_dir/$git_public_key_name" ]; then
-		error " $key_root_dir/$git_public_key_name is NOT exist"
+		error " $key_root_dir/$git_public_key_name is NOT exist.EXIT"
 		exit 1
 	fi
     #使用证书加密文件
@@ -341,7 +357,7 @@ function push() {
     openssl smime -encrypt -aes256 -binary -outform DEM -in "$public_root_dir/$tmp_name" -out "$private_root_dir/$repo_name" "$key_root_dir/$git_public_key_name" 
     ret=$?
     if [ $ret -ne 0 ]; then
-		error " openssl smimee  -encrypt failed : $ret"
+		error " openssl smimee  -encrypt failed : $ret.EXIT"
 		exit 1
 	fi
 	if [ -d $public_root_dir/$tmp_name ]; then
@@ -353,13 +369,13 @@ function push() {
     git add "$repo_name"
     ret=$?
     if [ $ret -ne 0 ]; then
-		error " git add $repo_name failed : $ret"
+		error " git add $repo_name failed : $ret.EXIT"
 		exit 1
 	fi
-    git commit -m "Push private $repo_name"
+    git commit -m "$commit_content"
     ret=$?
     if [ $ret -ne 0 ]; then
-		error " git commit $repo_name failed : $ret"
+		error " git commit $repo_name failed : $ret.EXIT"
 		exit 1
 	fi
 	#提交本地版本作为origin主机的maste分支
@@ -367,7 +383,7 @@ function push() {
     git push -u origin master
     ret=$?
     if [ $ret -ne 0 ]; then
-		error " git push $repo_name failed : $ret"
+		error " git push $repo_name failed : $ret.EXIT"
 		exit 1
 	fi
     info "Finish push $repo_name"
@@ -386,21 +402,20 @@ function push() {
 #从Github服务器中下载已加密的私有仓库，进行解压缩、解密
 #使用openssl进行解密工作
 function pull() {
-    info "Pull from Github"
+    info "Pull $repo_name from Github"
     
+	#切换并获取当前脚本所在路径
+    cd "$git_wrap_repositories_abs_dir"
     #从GitHub 克隆私有库所在公有库的根目录
     if [ ! -d $private_root_dir ]; then
     	clone_privateRoot_from_GitHub
+		if [ $? -ne 0 ]; then
+			exit 1
+		fi 
     else    
 		#切换并获取当前脚本所在路径
 		cd "$git_wrap_repositories_abs_dir"
-		
-		#检查本地的加密的私有仓库是否存在
-		if [ ! -d "$public_root_dir" ]; then 
-			error "$public_root_dir does NOT exist."
-			exit 1
-		fi
-		
+				
 		#切换到私有仓库所在公有库的根目录
 		cd "$private_root_dir"
 		#git pull的默认行为是git fetch + git merge
@@ -412,14 +427,21 @@ function pull() {
 			exit 1
 		fi
     fi
-    if [ ! -f "$repo_name" ];
-	then 
-		error "git pulled private $repo_name does NOT exist."
+	#切换并获取当前脚本所在路径
+    cd "$git_wrap_repositories_abs_dir"
+    if [ ! -f "$private_root_dir/$repo_name" ]; then 
+		error "git pulled private $repo_name does NOT exist.EXIT"
 		exit 1
     fi
     
 	#切换并获取当前脚本所在路径
     cd "$git_wrap_repositories_abs_dir"
+    
+	#检查本地的加密的私有仓库是否存在
+	if [ ! -d "$public_root_dir" ]; then 
+		mkdir -p $public_root_dir
+	fi
+    
 	if [ ! -f "$key_root_dir/$git_private_key_name" ]; then
 		error "$key_root_dir/$git_private_key_name is NOT exist.EXIT"
 		exit 1		
@@ -437,23 +459,28 @@ function pull() {
     openssl smime -decrypt -binary -inform DEM -inkey "$key_root_dir/$git_private_key_name" -in "$private_root_dir/$repo_name" -out "$public_root_dir/$tmp_name"
     ret=$?
     if [ $ret -ne 0 ]; then
-		error " openssl smimee  -decrypt failed : $ret"
+		error " openssl smimee  -decrypt failed : $ret.EXIT"
 		exit 1
 	fi
 	
-    if [ -d "$public_root_dir/$repo_name" ];
-	then 
+    if [ -d "$public_root_dir/$repo_name" ]; then 
+		#删除老版本的未加密私有仓库
+		info "Remove old $repo_name under $public_root_dir/"
 		rm -Rf $public_root_dir/$repo_name
-		exit 1
     fi
      #将从远程下载的已加密的git仓库临时压缩包解压缩到本地未加密库所在根目录中去
     tar -xzf "$public_root_dir/$tmp_name" "$public_root_dir/$repo_name" 
     ret=$?
     if [ $ret -ne 0 ]; then
-		error " untar $public_root_dir/$tmp_name: $ret"
+		error " untar $public_root_dir/$tmp_name: $ret.EXIT"
 		exit 1
 	fi 
     rm -r $public_root_dir/$tmp_name
+    #创建工作空间并从本地未加密私有仓库clone最新副本
+	create_workspace
+	if [ $? -ne 0 ]; then
+		exit 1
+	fi 
     info "Finish pull $repo_name"
 }
 
@@ -461,8 +488,11 @@ function pull() {
 ################################################################################
 #脚本开始
 ################################################################################
-
-parse_params_in $@
+#含空格的字符串若想作为一个整体传递，则需加*
+#"$*" is equivalent to "$1c$2c...", where c is the first character of the value of the IFS variable.
+#"$@" is equivalent to "$1" "$2" ... 
+#$*、$@不加"",则无区别，
+parse_params_in "$@"
 if [ $? -ne 0 ]; then
 	exit 1
 fi
