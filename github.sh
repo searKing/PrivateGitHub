@@ -26,7 +26,7 @@ function call_func_serializable
 			return 1
 			;;
 		1)	#无参数函数调用
-			if ( [ "$func_in" != "req" ] && [ "$func_in" != "pull" ]); then
+			if ( [ "$func_in" != "req" ] && [ "$func_in" != "pull" ] && [ "$func_in" != "push" ]); then
 				log_error "${LINENO}:Invalid serializable cmd without params: $func_in"
 				return 1
 			fi
