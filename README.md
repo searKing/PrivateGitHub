@@ -6,6 +6,7 @@ Use private repository with a free account.
 Overview:
 =========
 This project can encrypt any number of bare git repositories into another git repository which is hosted on Github.com.
+NOTE: call ./github.sh -h for advance use
 
 How this project work:
 ======================

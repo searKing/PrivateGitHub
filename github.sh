@@ -180,11 +180,16 @@ function usage() {
 			create
 				create local public repo and workspace		
 				NOTE: A Github repo called root should be created on github.com beforehand.
+				surrpot serializable repo_names seperated by space
 			push repo_name
 				Make directory repo_name under g_public_root_dir/ to an compressed archived file into g_private_root_dir/ with the same name.
 				Then add this archived file to git and push it to remote.
+				if repo_name is null , then push all dirs under the g_public_root_dir/
+				surrpot serializable repo_names seperated by space
 			pull repo_name
 				Pull the update files from github to root. Decompress file repo_name under g_private_root_dir/ to g_public_root_dir/.
+				if repo_name is null , then pull all dirs on the GitHub Server
+				surrpot serializable repo_names seperated by space
 	AUTHOR 作者
     		由 searKing Chan 完成。
 			
