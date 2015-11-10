@@ -91,7 +91,7 @@ function set_default_var_param(){
 	g_git_public_key_name="git.public.pem" #加密库公钥名称
 	g_workspace_root_dir="workspace" #工作目录
 	
-	g_commit_content="commit on $(date):Push private $repo_name"
+	g_commit_content="commit on $(date):Push private "$repo_name""
 	
 	g_git_wrap_action="" #当前动作
 	g_repo_names="" #当前动作参数--私有库名称
@@ -326,20 +326,20 @@ function create_workspace
 		return 1;
 	fi
 	repo_name=$1
-	log_info "create&clone workspace $repo_name to $g_workspace_root_dir/" 
+	log_info "create&clone workspace "$repo_name" to $g_workspace_root_dir/" 
 	#切换并获取当前脚本所在路径
 	cd "$g_git_wrap_repositories_abs_dir"
-	if [ -d $g_workspace_root_dir/$repo_name ]; then
-		rm $g_workspace_root_dir/$repo_name -Rf
+	if [ -d $g_workspace_root_dir/"$repo_name" ]; then
+		rm $g_workspace_root_dir/"$repo_name" -Rf
 	fi    
-	mkdir -p $g_workspace_root_dir/$repo_name
+	mkdir -p $g_workspace_root_dir/"$repo_name"
 	
 	#切换到未加密的repo工作目录
 	cd $g_workspace_root_dir/
-	git clone $g_git_wrap_repositories_abs_dir/$g_public_root_dir/$repo_name
+	git clone $g_git_wrap_repositories_abs_dir/$g_public_root_dir/"$repo_name"
 	ret=$?
 	if [ $ret -ne 0 ]; then
-		log_error "${LINENO}:git clone $g_public_root_dir/$repo_name: $ret"
+		log_error "${LINENO}:git clone $g_public_root_dir/"$repo_name": $ret"
 		return 1
 	fi
 }
@@ -363,7 +363,7 @@ function create()
 		return 1;
 	fi
 	repo_name=$1
-	log_info "create $repo_name under $g_public_root_dir"
+	log_info "create "$repo_name" under $g_public_root_dir"
 	#切换并获取当前脚本所在路径
 	cd "$g_git_wrap_repositories_abs_dir"
 		
@@ -375,19 +375,19 @@ function create()
 	#切换到私有仓库所在公有库的根目录
 	cd "$g_public_root_dir"
 		
-	if [ -d $repo_name ]; then
+	if [ -d "$repo_name" ]; then
 		if [ $g_cfg_force_mode -eq 0 ]; then
-			log_error "${LINENO}:$repo_name files is already exist. Exit."
+			log_error "${LINENO}:"$repo_name" files is already exist. Exit."
 			return 1
 		else
-			log_info "force delete exist $repo_name files"			
+			log_info "force delete exist "$repo_name" files"			
 		fi
 	fi    
 		
-	mkdir -p $repo_name	
+	mkdir -p "$repo_name"	
 	#切换到未加密的repo版本库目录
 	cd "$repo_name"
-	#将 $repo_name 目录初始化为空的Git版本库
+	#将 "$repo_name" 目录初始化为空的Git版本库
 	#此时，当前git仓库就可以看成是远端仓库。					
 	#使用命令"git init --bare"初始化的版本库(暂且称为bare repository)只会生成一类文件:用于记录版本库历史记录的.git目录下面的文件;而不会包含实际项目源文件的拷贝;所以该版本库不能称为工作目录(working tree);	
 	#之所以叫裸仓库是因为这个仓库只保存git历史提交的版本信息，而不允许用户在上面进行各种git操作，如果你硬要操作的话，只会得到下面的错误（”This operation must be run in a work tree”）。		
@@ -395,15 +395,15 @@ function create()
 	git init --bare
 	ret=$?
 	if [ $ret -ne 0 ]; then
-		log_error " git init $g_public_root_dir/$repo_name: $ret"
+		log_error " git init $g_public_root_dir/"$repo_name": $ret"
 		return 1
 	fi 
 	
-	log_info "$repo_name created. Please clone $repo_name from your Local Bare Git Repository"
+	log_info ""$repo_name" created. Please clone "$repo_name" from your Local Bare Git Repository"
 	log_info "use cmd in your workspace:"
-	log_info "git clone $g_git_wrap_repositories_abs_dir/$g_public_root_dir/$repo_name"
+	log_info "git clone $g_git_wrap_repositories_abs_dir/$g_public_root_dir/"$repo_name""
 	#创建工作空间并从本地未加密私有仓库clone最新副本
-	create_workspace $repo_name
+	create_workspace "$repo_name"
 	if [ $? -ne 0 ]; then
 		return 1
 	fi 
@@ -418,13 +418,13 @@ function compress()
 		return 1;
 	fi
 	repo_name=$1
-	tmp_name="$repo_name$g_tmp_dot_suffix"
-	log_info "${LINENO}:Compress $repo_name from $tmp_name"    
+	tmp_name=""$repo_name"$g_tmp_dot_suffix"
+	log_info "${LINENO}:Compress "$repo_name" from $tmp_name"    
 	#切换并获取当前脚本所在路径
 	cd "$g_git_wrap_repositories_abs_dir"
 	#检查本地的未加密的私有仓库是否存在
 	#这边，不限定为文件夹，文件也可以压缩
-	if [ ! -e "$g_public_root_dir/$repo_name" ]; then
+	if [ ! -e "$g_public_root_dir/"$repo_name"" ]; then
 		log_error "${LINENO}: "$repo_name" to be compressed is NOT exist.EXIT"
 		return 1    	
 	fi
@@ -438,10 +438,10 @@ function compress()
 		mkdir -p $g_tmp_root_dir
 	fi
 	#将本地未加密的git仓库压缩打包到临时操作目录中去
-	tar -czf "$g_tmp_root_dir/$tmp_name" "$g_public_root_dir/$repo_name"
+	tar -czf "$g_tmp_root_dir/$tmp_name" "$g_public_root_dir/"$repo_name""
 	ret=$?
 	if [ $ret -ne 0 ]; then
-		log_error "${LINENO}:tar $repo_name : $ret"
+		log_error "${LINENO}:tar "$repo_name" : $ret"
 		return 1
 	fi 
 }
@@ -455,8 +455,8 @@ function extract()
 		return 1;
 	fi
 	repo_name=$1
-	tmp_name="$repo_name$g_tmp_dot_suffix"
-    log_info "Extract $tmp_name  to $repo_name"    
+	tmp_name=""$repo_name"$g_tmp_dot_suffix"
+    log_info "Extract $tmp_name  to "$repo_name""    
 	#切换并获取当前脚本所在路径
     cd "$g_git_wrap_repositories_abs_dir"
 	#检查本地的未加密的私有仓库是否存在
@@ -466,13 +466,13 @@ function extract()
 		return 1    	
     fi
 	#删除本地未加密库所在根目录中老版本的已解压私有仓库
-    if [ -d "$g_public_root_dir/$repo_name" ]; then 
+    if [ -d "$g_public_root_dir/"$repo_name"" ]; then 
 		#删除老版本的未加密私有仓库
-		log_info "${LINENO}:Remove old $repo_name under $g_public_root_dir/"
-		rm -Rf $g_public_root_dir/$repo_name
+		log_info "${LINENO}:Remove old "$repo_name" under $g_public_root_dir/"
+		rm -Rf $g_public_root_dir/"$repo_name"
     fi
      #将从远程下载的已加密的git仓库临时压缩包解压缩到本地未加密库所在根目录中去
-    tar -xzf "$g_tmp_root_dir/$tmp_name" "$g_public_root_dir/$repo_name" 
+    tar -xzf "$g_tmp_root_dir/$tmp_name" "$g_public_root_dir/"$repo_name"" 
     ret=$?
     if [ $ret -ne 0 ]; then
 		log_error "${LINENO}: untar $g_tmp_root_dir/$tmp_name: $ret.EXIT"
@@ -491,8 +491,8 @@ function encrypt()
 		return 1;
 	fi
 	repo_name=$1
-	tmp_name="$repo_name$g_tmp_dot_suffix"
-    log_info "Encrypting $g_tmp_root_dir/$tmp_name to $g_private_root_dir/$repo_name "
+	tmp_name=""$repo_name"$g_tmp_dot_suffix"
+    log_info "Encrypting $g_tmp_root_dir/$tmp_name to $g_private_root_dir/"$repo_name" "
     
 	#切换并获取当前脚本所在路径
     cd "$g_git_wrap_repositories_abs_dir"
@@ -506,10 +506,10 @@ function encrypt()
 		return 1
 	fi
 	#删除root公开git仓库中的老版本已加密私有仓库
-	if [ -f $g_private_root_dir/$repo_name ]; then
+	if [ -f $g_private_root_dir/"$repo_name" ]; then
 		#删除老版本的加密私有仓库
-		log_info "${LINENO}:Remove old $repo_name under $g_private_root_dir/"
-    	rm -f $g_private_root_dir/$repo_name    	
+		log_info "${LINENO}:Remove old "$repo_name" under $g_private_root_dir/"
+    	rm -f $g_private_root_dir/"$repo_name"    	
 	fi
 
     #使用证书加密文件
@@ -520,7 +520,7 @@ function encrypt()
 	#-in file：输入消息值，它一般为加密了的以及签名了的MINME类型的消息值。
 	#-out file：已经被解密或验证通过的数据的保存位置。
 	#
-    openssl smime -encrypt -aes256 -binary -outform DEM -in "$g_tmp_root_dir/$tmp_name" -out "$g_private_root_dir/$repo_name" "$g_key_root_dir/$g_git_public_key_name" 
+    openssl smime -encrypt -aes256 -binary -outform DEM -in "$g_tmp_root_dir/$tmp_name" -out "$g_private_root_dir/"$repo_name"" "$g_key_root_dir/$g_git_public_key_name" 
     ret=$?
     if [ $ret -ne 0 ]; then
 		log_error "${LINENO}: openssl smimee  -encrypt failed : $ret.EXIT"
@@ -534,21 +534,20 @@ function encrypt()
 #解密本地的已加密的私有仓库
 #@param repo_name 	私有仓库名
 function decrypt()
-{
-    
+{    
 	expected_params_in_num=1
 	if [ $# -ne $expected_params_in_num ]; then
 		log_error "${LINENO}:$0 expercts $expected_params_in_num param_in, but receive only $#. EXIT"
 		return 1;
 	fi
 	repo_name=$1
-	tmp_name="$repo_name$g_tmp_dot_suffix"
-    log_info "${LINENO}:Decrypting $g_private_root_dir/$repo_name to $g_tmp_root_dir/$tmp_name"
+	tmp_name=""$repo_name"$g_tmp_dot_suffix"
+    log_info "${LINENO}:Decrypting $g_private_root_dir/"$repo_name" to $g_tmp_root_dir/$tmp_name"
     
 	#切换并获取当前脚本所在路径
     cd "$g_git_wrap_repositories_abs_dir"
     
-    if [ ! -e "$g_private_root_dir/$repo_name" ]; then
+    if [ ! -e "$g_private_root_dir/"$repo_name"" ]; then
 		log_error "${LINENO}: "$repo_name" to be decrypted is NOT exist.EXIT"
 		return 1    	
     fi
@@ -582,13 +581,14 @@ function decrypt()
 	#-in file：输入消息值，它一般为加密了的以及签名了的MINME类型的消息值。
 	#-out file：已经被解密或验证通过的数据的保存位置。
 	#
-	openssl smime -decrypt -binary -inform DEM -inkey "$g_key_root_dir/$g_git_private_key_name" -in "$g_private_root_dir/$repo_name" -out "$g_tmp_root_dir/$tmp_name"
+	openssl smime -decrypt -binary -inform DEM -inkey "$g_key_root_dir/$g_git_private_key_name" -in "$g_private_root_dir/"$repo_name"" -out "$g_tmp_root_dir/$tmp_name"
     ret=$?
     if [ $ret -ne 0 ]; then
 		log_error "${LINENO}: openssl smimee  -decrypt failed : $ret.EXIT"
 		return 1
 	fi
 }
+
 #git_repositories_dir --
 #          |- github.sh
 #			 |-keyRoot/							#g_key_root_dir
@@ -616,32 +616,39 @@ function push() {
     	
     fi
     if [ $# -eq 0 ]; then
+    	cd "$g_public_root_dir"
 		#获得全部私有仓库名称
-		repo_name=$(ls "$g_public_root_dir")
+		repo_name=$(find . -mindepth 1 -maxdepth 1 -type d)
+		repo_name=${repo_name//.\//}
+		cd -
 	else
 		repo_name=$1
 	fi	
-	log_info "${LINENO}:compress $repo_name"
+	if [ "$repo_name"x == x ]; then
+		log_error "${LINENO}: Push source public repo is NOT exist.EXIT"
+		return 1
+	fi
+	log_info "${LINENO}:compress "$repo_name""
 	#压缩本地的未加密的私有仓库，或广义的私有文件
-	call_func_serializable "compress" $repo_name 
+	call_func_serializable "compress" "$repo_name" 
     if [ $? -ne 0 ]; then
 		return 1
 	fi 
-	log_info "${LINENO}:encrypt $repo_name"
+	log_info "${LINENO}:encrypt "$repo_name""
     #使用证书加密文件
-	call_func_serializable "encrypt" $repo_name 
+	call_func_serializable "encrypt" "$repo_name" 
     if [ $? -ne 0 ]; then
 		return 1
 	fi 
 	
 	#切换到私有仓库所在公有库的根目录
     cd "$g_private_root_dir"
-    if [ ! -z $repo_name ]; then
-		log_info "${LINENO}:Add $repo_name to Github"
+    if [ ! -z "$repo_name" ]; then
+		log_info "${LINENO}:Add "$repo_name" to Github"
 		call_func_serializable "git add" "$repo_name"
 		ret=$?
 		if [ $ret -ne 0 ]; then
-			log_error "${LINENO}: git add $repo_name failed : $ret.EXIT"
+			log_error "${LINENO}: git add "$repo_name" failed : $ret.EXIT"
 			return 1
 		fi
 	fi
@@ -651,7 +658,7 @@ function push() {
     if [ $? -ne 0 ]; then
 		return 1
 	fi
-    log_info "${LINENO}:Finish push $repo_name"
+    log_info "${LINENO}:Finish push "$repo_name""
 }    
 
 #git_repositories_dir --
@@ -695,31 +702,41 @@ function pull() {
     fi
 	#切换并获取当前脚本所在路径
     cd "$g_git_wrap_repositories_abs_dir"
-    
-	if [ $# -eq 0 ]; then
+    	
+    if [ $# -eq 0 ]; then
+    	cd "$g_private_root_dir"
 		#获得全部私有仓库名称
-		repo_name=$(ls "$g_private_root_dir")
+		repo_name=$(find . -mindepth 1 -maxdepth 1 -type f)
+		repo_name=${repo_name//.\//}
+		repo_name=${repo_name//.git/}
+		repo_name=${repo_name//LICENSE/}
+		repo_name=${repo_name//README.md/}
+		cd -
 	else
 		repo_name=$1
-	fi		
+	fi	
+	if [ "$repo_name"x == x ]; then
+		log_error "${LINENO}: Pull source private repo is NOT exist.EXIT"
+		return 1
+	fi
 	
 	#解密本地的已加密的私有仓库
-	call_func_serializable "decrypt" $repo_name    
+	call_func_serializable "decrypt" "$repo_name"    
     if [ $? -ne 0 ]; then
 		return 1
 	fi 
     #解压本地的未加密的私有仓库，或广义的私有文件
-	call_func_serializable "extract" $repo_name 
+	call_func_serializable "extract" "$repo_name" 
     if [ $? -ne 0 ]; then
 		return 1
 	fi 
 	
     #创建工作空间并从本地未加密私有仓库clone最新副本
-	call_func_serializable "create_workspace" $repo_name 
+	call_func_serializable "create_workspace" "$repo_name" 
 	if [ $? -ne 0 ]; then
 		return 1
 	fi 
-    log_info "${LINENO}:Finish pull $repo_name"
+    log_info "${LINENO}:Finish pull "$repo_name""
 }
 
 
