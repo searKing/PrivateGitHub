@@ -41,7 +41,7 @@ function call_func_serializable
 			for curr_param in $param_in
 			do	
 				case $func_in in
-					"create" | "push" | "pull" | "encrypt" | "decrypt" | "compress" | "extract" | "create_workspace")
+					"create" | "push" | "pull" | "encrypt" | "decrypt" | "compress" | "extract" | "create_workspace" | "git add")
 						repo_name=$curr_param
 						$func_in "$repo_name"
 						if [ $? -ne 0 ]; then
@@ -146,13 +146,6 @@ HELPEOF
 	g_repo_names="$@"	    
     
 	case $g_git_wrap_action in
-	push) #没有参数可以自己构造参数
-		#若未指定私有仓库repo，则
-		if [ -z "$g_repo_names" ]; then
-			#获得全部私有仓库名称
-			g_repo_names=$(ls "$g_private_root_dir")
-    	fi
-		;;  
 	create) #必须要输入一个参数
 		#若未指定私有仓库repo，则
 		if [ -z "$g_repo_names" ]; then
@@ -437,7 +430,7 @@ function compress()
 	#删除临时操作目录中的老版本已压缩私有仓库
 	if [ -f "$g_public_root_dir/$tmp_name" ]; then
 		#删除老版本的压缩私有仓库
-		log_info "${LINENO}:Remove old $tmp_name under $$g_public_root_dir/"
+		log_info "${LINENO}:Remove old $tmp_name under $g_public_root_dir/"
 		rm -f "$g_public_root_dir/$tmp_name"    	
 	fi
 	#将本地未加密的git仓库压缩打包到临时操作目录中去
@@ -601,15 +594,8 @@ function decrypt()
 #将本地的未加密的私有仓库进行压缩、加密、上传至Github服务器中去
 #使用openssl进行加密工作
 #@param repo_name 	私有仓库名
-function push() {
-	
-	expected_params_in_num=1
-	if [ $# -ne $expected_params_in_num ]; then
-		log_error "${LINENO}:$0 expercts $expected_params_in_num param_in, but receive only $#. EXIT"
-		return 1;
-	fi
-	repo_name=$1
-    log_info "${LINENO}:Push $repo_name to Github"
+function push() {	
+    log_info "${LINENO}:Push $g_public_root_dir to Github"
     
 	#切换并获取当前脚本所在路径
     cd "$g_git_wrap_repositories_abs_dir"
@@ -622,14 +608,19 @@ function push() {
 		fi 
     	
     fi
-    
+    if [ $# -eq 0 ]; then
+		#获得全部私有仓库名称
+		repo_name=$(ls "$g_public_root_dir")
+	else
+		repo_name=$1
+	fi	
 	#压缩本地的未加密的私有仓库，或广义的私有文件
-	compress $repo_name
+	call_func_serializable "compress" $repo_name 
     if [ $? -ne 0 ]; then
 		return 1
 	fi 
     #使用证书加密文件
-	encrypt $repo_name
+	call_func_serializable "encrypt" $repo_name 
     if [ $? -ne 0 ]; then
 		return 1
 	fi 
@@ -638,7 +629,7 @@ function push() {
     cd "$g_private_root_dir"
     if [ ! -z $repo_name ]; then
 		log_info "${LINENO}:Add to Github"
-		git add "$repo_name"
+		call_func_serializable "git add" "$repo_name"
 		ret=$?
 		if [ $ret -ne 0 ]; then
 			log_error "${LINENO}: git add $repo_name failed : $ret.EXIT"
@@ -668,7 +659,7 @@ function push() {
 #使用openssl进行解密工作
 #@param repo_name 	私有仓库名--支持空格分割的字符串序列化
 function pull() {
-    log_info "${LINENO}:Pull $repo_name from Github"
+    log_info "${LINENO}:Pull $g_private_root_dir from Github"
     
 	#切换并获取当前脚本所在路径
     cd "$g_git_wrap_repositories_abs_dir"
