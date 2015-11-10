@@ -85,6 +85,7 @@ function set_default_var_param(){
 	g_private_root_urn="https://github.com/searKing/$g_private_root_dir.git"
 	g_public_root_dir="publicRoot" #私有库repo解密后存放的本地根目录
 	g_tmp_dot_suffix=".tmp" #加密缓存变量名的带点后缀
+	g_tmp_root_dir="tmp" #加解密库公私钥所在目录
 	g_key_root_dir="keyRoot" #加解密库公私钥所在目录
 	g_git_private_key_name="git.private.pem" #解密库私钥名称
 	g_git_public_key_name="git.public.pem" #加密库公钥名称
@@ -428,13 +429,16 @@ function compress()
 		return 1    	
 	fi
 	#删除临时操作目录中的老版本已压缩私有仓库
-	if [ -f "$g_public_root_dir/$tmp_name" ]; then
+	if [ -f "$g_tmp_root_dir/$tmp_name" ]; then
 		#删除老版本的压缩私有仓库
-		log_info "${LINENO}:Remove old $tmp_name under $g_public_root_dir/"
-		rm -f "$g_public_root_dir/$tmp_name"    	
+		log_info "${LINENO}:Remove old $tmp_name under $g_tmp_root_dir/"
+		rm -f "$g_tmp_root_dir/$tmp_name"    	
+	fi
+	if [ ! -d "$g_tmp_root_dir" ]; then 
+		mkdir -p $g_tmp_root_dir
 	fi
 	#将本地未加密的git仓库压缩打包到临时操作目录中去
-	tar -czf "$g_public_root_dir/$tmp_name" "$g_public_root_dir/$repo_name"
+	tar -czf "$g_tmp_root_dir/$tmp_name" "$g_public_root_dir/$repo_name"
 	ret=$?
 	if [ $ret -ne 0 ]; then
 		log_error "${LINENO}:tar $repo_name : $ret"
@@ -457,7 +461,7 @@ function extract()
     cd "$g_git_wrap_repositories_abs_dir"
 	#检查本地的未加密的私有仓库是否存在
     #这边，不限定为文件夹，文件也可以压缩
-    if [ ! -e "$g_public_root_dir/$tmp_name" ]; then
+    if [ ! -e "$g_tmp_root_dir/$tmp_name" ]; then
 		log_error "${LINENO}: "$tmp_name" to be extracted is NOT exist.EXIT"
 		return 1    	
     fi
@@ -468,13 +472,13 @@ function extract()
 		rm -Rf $g_public_root_dir/$repo_name
     fi
      #将从远程下载的已加密的git仓库临时压缩包解压缩到本地未加密库所在根目录中去
-    tar -xzf "$g_public_root_dir/$tmp_name" "$g_public_root_dir/$repo_name" 
+    tar -xzf "$g_tmp_root_dir/$tmp_name" "$g_public_root_dir/$repo_name" 
     ret=$?
     if [ $ret -ne 0 ]; then
-		log_error "${LINENO}: untar $g_public_root_dir/$tmp_name: $ret.EXIT"
+		log_error "${LINENO}: untar $g_tmp_root_dir/$tmp_name: $ret.EXIT"
 		return 1
 	fi 
-    rm -r $g_public_root_dir/$tmp_name
+    rm -r $g_tmp_root_dir/$tmp_name
 }
 #加密本地的未加密的私有仓库
 #@param repo_name 	私有仓库名
@@ -488,12 +492,12 @@ function encrypt()
 	fi
 	repo_name=$1
 	tmp_name="$repo_name$g_tmp_dot_suffix"
-    log_info "Encrypting $g_public_root_dir/$tmp_name to $g_private_root_dir/$repo_name "
+    log_info "Encrypting $g_tmp_root_dir/$tmp_name to $g_private_root_dir/$repo_name "
     
 	#切换并获取当前脚本所在路径
     cd "$g_git_wrap_repositories_abs_dir"
     
-    if [ ! -e "$g_public_root_dir/$tmp_name" ]; then
+    if [ ! -e "$g_tmp_root_dir/$tmp_name" ]; then
 		log_error "${LINENO}: "$repo_name" to be encrypted is NOT exist.EXIT"
 		return 1    	
     fi
@@ -516,14 +520,14 @@ function encrypt()
 	#-in file：输入消息值，它一般为加密了的以及签名了的MINME类型的消息值。
 	#-out file：已经被解密或验证通过的数据的保存位置。
 	#
-    openssl smime -encrypt -aes256 -binary -outform DEM -in "$g_public_root_dir/$tmp_name" -out "$g_private_root_dir/$repo_name" "$g_key_root_dir/$g_git_public_key_name" 
+    openssl smime -encrypt -aes256 -binary -outform DEM -in "$g_tmp_root_dir/$tmp_name" -out "$g_private_root_dir/$repo_name" "$g_key_root_dir/$g_git_public_key_name" 
     ret=$?
     if [ $ret -ne 0 ]; then
 		log_error "${LINENO}: openssl smimee  -encrypt failed : $ret.EXIT"
 		return 1
 	fi
-	if [ -d $g_public_root_dir/$tmp_name ]; then
-    	 rm -f "$g_public_root_dir/$tmp_name"
+	if [ -f $g_tmp_root_dir/$tmp_name ]; then
+    	 rm -f "$g_tmp_root_dir/$tmp_name"
 	fi	
 }
 
@@ -539,7 +543,7 @@ function decrypt()
 	fi
 	repo_name=$1
 	tmp_name="$repo_name$g_tmp_dot_suffix"
-    log_info "${LINENO}:Decrypting $g_private_root_dir/$repo_name to $g_public_root_dir/$tmp_name"
+    log_info "${LINENO}:Decrypting $g_private_root_dir/$repo_name to $g_tmp_root_dir/$tmp_name"
     
 	#切换并获取当前脚本所在路径
     cd "$g_git_wrap_repositories_abs_dir"
@@ -554,10 +558,10 @@ function decrypt()
 		return 1		
 	fi
 	#删除root公开git仓库中的老版本已解密未解压的私有仓库
-	if [ -f $g_public_root_dir/$tmp_name ]; then
+	if [ -f $g_tmp_root_dir/$tmp_name ]; then
 		#删除老版本的加密私有仓库
-		log_info "${LINENO}:Remove old $tmp_name under $g_public_root_dir/"
-    	rm -f $g_public_root_dir/$tmp_name    	
+		log_info "${LINENO}:Remove old $tmp_name under $g_tmp_root_dir/"
+    	rm -f $g_tmp_root_dir/$tmp_name    	
 	fi
 
 	#检查本地的已解密的私有仓库是否存在
@@ -565,6 +569,10 @@ function decrypt()
 		mkdir -p $g_public_root_dir
 	fi
 	
+	
+	if [ ! -d "$g_tmp_root_dir" ]; then 
+		mkdir -p $g_tmp_root_dir
+	fi
 	
     #使用证书解密文件
 	#-decrypt：用提供的证书和私钥值来解密邮件信息值。从输入文件中获取到已经加密了的MIME格式的邮件信息值。解密的邮件信息值被保存到输出文件中。
@@ -574,7 +582,7 @@ function decrypt()
 	#-in file：输入消息值，它一般为加密了的以及签名了的MINME类型的消息值。
 	#-out file：已经被解密或验证通过的数据的保存位置。
 	#
-	openssl smime -decrypt -binary -inform DEM -inkey "$g_key_root_dir/$g_git_private_key_name" -in "$g_private_root_dir/$repo_name" -out "$g_public_root_dir/$tmp_name"
+	openssl smime -decrypt -binary -inform DEM -inkey "$g_key_root_dir/$g_git_private_key_name" -in "$g_private_root_dir/$repo_name" -out "$g_tmp_root_dir/$tmp_name"
     ret=$?
     if [ $ret -ne 0 ]; then
 		log_error "${LINENO}: openssl smimee  -decrypt failed : $ret.EXIT"
@@ -599,7 +607,6 @@ function push() {
     
 	#切换并获取当前脚本所在路径
     cd "$g_git_wrap_repositories_abs_dir"
-    
     #从GitHub 克隆私有库所在公有库的根目录
     if [ ! -d $g_private_root_dir ]; then
     	clone_privateRoot_from_GitHub
@@ -614,11 +621,13 @@ function push() {
 	else
 		repo_name=$1
 	fi	
+	log_info "${LINENO}:compress $repo_name"
 	#压缩本地的未加密的私有仓库，或广义的私有文件
 	call_func_serializable "compress" $repo_name 
     if [ $? -ne 0 ]; then
 		return 1
 	fi 
+	log_info "${LINENO}:encrypt $repo_name"
     #使用证书加密文件
 	call_func_serializable "encrypt" $repo_name 
     if [ $? -ne 0 ]; then
@@ -628,7 +637,7 @@ function push() {
 	#切换到私有仓库所在公有库的根目录
     cd "$g_private_root_dir"
     if [ ! -z $repo_name ]; then
-		log_info "${LINENO}:Add to Github"
+		log_info "${LINENO}:Add $repo_name to Github"
 		call_func_serializable "git add" "$repo_name"
 		ret=$?
 		if [ $ret -ne 0 ]; then
