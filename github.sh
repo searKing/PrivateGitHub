@@ -279,8 +279,7 @@ function clone_privateRoot_from_GitHub()
 		log_error "${LINENO}:$0 expercts $expected_params_in_num param_in, but receive only $#. EXIT"
 		return 1;
 	fi
-	repo_name=$1
-    log_info "${LINENO}:clone $repo_name under $g_private_root_dir from GitHub"
+    log_info "${LINENO}:clone $g_private_root_dir from GitHub"
 	#切换并获取当前脚本所在路径
     cd "$g_git_wrap_repositories_abs_dir"
     
@@ -300,8 +299,7 @@ function push_privateRoot_to_GitHub()
 		log_error "${LINENO}:$0 expercts $expected_params_in_num param_in, but receive only $#. EXIT"
 		return 1;
 	fi
-	repo_name=$1
-    log_info "${LINENO}:push $repo_name under $g_private_root_dir to GitHub"
+    log_info "${LINENO}:push $g_private_root_dir to GitHub"
 	#切换并获取当前脚本所在路径
     cd "$g_git_wrap_repositories_abs_dir"
 	
