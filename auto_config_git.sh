@@ -23,6 +23,8 @@ function auto_config_git()
 {	
 	git config --global user.name "$g_user_name"
 	git config --global user.email "$g_user_email"
+	#支持稀疏检出
+	git config --global core.sparseCheckout true
 #	维护一个多人编辑的代码仓库常常意味着试着发现何人在改动什么，这个别名可以输出提交者和提交日期的log信息。
 	git config --global alias.logpretty "log --pretty=format:'%C(yellow)%h %C(blue)� %C(red)%d %C(reset)%s %C(green) [%cn]' --decorate --date=short"
 #	git config --global alias.logpretty "log --pretty=oneline --abbrev-commit --graph --decorate"
