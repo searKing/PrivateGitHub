@@ -12,6 +12,48 @@ function log_error() {
 	echo "[ERROR]$@"
 }
 
+#使用方法说明
+function usage() {
+	cat<<USAGEEOF	
+	NAME  
+		$g_git_wrap_shell_name - 将任意数量的git仓库加密到托管在Github.com上的root git仓库中 
+	SYNOPSIS  
+		$g_git_wrap_shell_name [命令列表] [文件名]...   
+	DESCRIPTION  
+		$g_git_wrap_shell_name --将git仓库加密到托管在Github.com上的root git仓库中 
+			-h 
+				get help log_info
+			-f 
+				force mode to override exist file of the same name
+			-m 	comment_content
+				comment with the comment content
+			req	
+				Create git.private.pem and git.public.pem under ~/g_key_root_dir. Then create leaf directory under this direcotry and git-clone root from Github.		
+			create
+				create local public repo and workspace		
+				NOTE: A Github repo called root should be created on github.com beforehand.
+				surrpot serializable repo_names seperated by space
+			push repo_name
+				Make directory repo_name under g_public_root_dir/ to an compressed archived file into g_private_root_dir/ with the same name.
+				Then add this archived file to git and push it to remote.
+				if repo_name is null , then push all dirs under the g_public_root_dir/
+				surrpot serializable repo_names seperated by space
+			pull repo_name
+				Pull the update files from github to root. Decompress file repo_name under g_private_root_dir/ to g_public_root_dir/.
+				if repo_name is null , then pull all dirs on the GitHub Server
+				surrpot serializable repo_names seperated by space
+	AUTHOR 作者
+    		由 searKing Chan 完成。
+			
+       	DATE   日期
+		2015-11-06
+
+	REPORTING BUGS 报告缺陷
+    		向 searKingChan@gmail.com 报告缺陷。	
+	REFERENCE	参见
+			https://github.com/searKing/GithubHub.git
+USAGEEOF
+}
 #循环嵌套调用程序,每次输入一个参数
 #本shell中定义的其他函数都认为不支持空格字符串的序列化处理（pull其实也支持）
 #@param func_in 	函数名 "func" 只支持单个函数
@@ -22,11 +64,11 @@ function call_func_serializable
 	param_in=$2
 	case $# in
 		0)
-			log_error "${LINENO}:$0 expercts 1 param_in at least, but receive only $#. EXIT"
+			log_error "${LINENO}:$0 expercts 1 param in at least, but receive only $#. EXIT"
 			return 1
 			;;
 		1)	#无参数函数调用
-			if ( [ "$func_in" != "req" ] && [ "$func_in" != "pull" ] && [ "$func_in" != "push" ]); then
+			if ( [ "$func_in" != "req" ] && [ "$func_in" != "pull" ] && [ "$func_in" != "push" ] ); then
 				log_error "${LINENO}:Invalid serializable cmd without params: $func_in"
 				return 1
 			fi
@@ -61,7 +103,7 @@ function call_func_serializable
 
 #设置默认配置参数
 function set_default_cfg_param(){
-	#覆盖前永不提示
+	#覆盖前永不提示-f
 	g_cfg_force_mode=0	
 }
 #git_repositories_dir --
@@ -157,44 +199,6 @@ HELPEOF
 	*)    
 		;;  
 	esac     
-}
-#使用方法说明
-function usage() {
-	cat<<USAGEEOF	
-	NAME  
-		$g_git_wrap_shell_name - 将任意数量的git仓库加密到托管在Github.com上的root git仓库中 
-	SYNOPSIS  
-		apkhack.sh [命令列表] [文件名]...   
-	DESCRIPTION  
-		$g_git_wrap_shell_name --将git仓库加密到托管在Github.com上的root git仓库中 
-			-h 
-				get help log_info
-			req	
-				Create git.private.pem and git.public.pem under ~/g_key_root_dir. Then create leaf directory under this direcotry and git-clone root from Github.		
-			create
-				create local public repo and workspace		
-				NOTE: A Github repo called root should be created on github.com beforehand.
-				surrpot serializable repo_names seperated by space
-			push repo_name
-				Make directory repo_name under g_public_root_dir/ to an compressed archived file into g_private_root_dir/ with the same name.
-				Then add this archived file to git and push it to remote.
-				if repo_name is null , then push all dirs under the g_public_root_dir/
-				surrpot serializable repo_names seperated by space
-			pull repo_name
-				Pull the update files from github to root. Decompress file repo_name under g_private_root_dir/ to g_public_root_dir/.
-				if repo_name is null , then pull all dirs on the GitHub Server
-				surrpot serializable repo_names seperated by space
-	AUTHOR 作者
-    		由 searKing Chan 完成。
-			
-       	DATE   日期
-		2015-11-06
-
-	REPORTING BUGS 报告缺陷
-    		向 searKingChan@gmail.com 报告缺陷。	
-	REFERENCE	参见
-			https://github.com/searKing/GithubHub.git
-USAGEEOF
 }
 function do_work(){
 	if [ "$g_repo_names"x == ""x ]; then	
