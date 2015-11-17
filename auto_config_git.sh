@@ -304,13 +304,13 @@ function do_work(){
 #$*、$@不加"",则无区别，
 parse_params_in "$@"
 if [ $? -ne 0 ]; then 
-	exit 1
+	return 1
 fi
 
 do_work
 if [ $? -ne 0 ]; then
-	exit 1
+	return 1
 fi
 log_info "$0 $@ is running successfully"
 read -n1 -p "Press any key to continue..."
-exit 0 
+return 0 
