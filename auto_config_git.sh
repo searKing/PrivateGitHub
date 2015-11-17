@@ -166,6 +166,23 @@ function auto_config_git()
 	git config --global user.email "$g_user_email"
 	#支持稀疏检出
 	git config --global core.sparseCheckout true
+	#git add等乱码
+	git config --global core.quotepath false
+	#设置git默认编辑器--git rebase -i 时需要vim
+	which vim	
+	if [ $? -ne 0 ]; then
+		sudo apt-get install vim
+	fi
+	git config --global core.editor vim
+	#mergetool、difftool配置
+	which meld #kdiff3
+	if [ $? -ne 0 ]; then
+		sudo apt-get install meld
+	fi
+	git config --global merge.tool meld
+	git config --global mergetool.prompt false
+	git config --global diff.tool meld
+	git config --global difftool.prompt false
 #	维护一个多人编辑的代码仓库常常意味着试着发现何人在改动什么，这个别名可以输出提交者和提交日期的log信息。--all 同时显示远程log
 	git config --global alias.logpretty "log --pretty=format:'%C(yellow)%h %C(blue)� %C(red)%d %C(reset)%s %C(green) [%cn]' --decorate --date=short --all"
 #	git config --global alias.logpretty "log --pretty=oneline --abbrev-commit --graph --decorate"
