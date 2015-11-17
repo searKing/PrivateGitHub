@@ -166,10 +166,10 @@ function auto_config_git()
 	git config --global user.email "$g_user_email"
 	#支持稀疏检出
 	git config --global core.sparseCheckout true
-#	维护一个多人编辑的代码仓库常常意味着试着发现何人在改动什么，这个别名可以输出提交者和提交日期的log信息。
-	git config --global alias.logpretty "log --pretty=format:'%C(yellow)%h %C(blue)� %C(red)%d %C(reset)%s %C(green) [%cn]' --decorate --date=short"
+#	维护一个多人编辑的代码仓库常常意味着试着发现何人在改动什么，这个别名可以输出提交者和提交日期的log信息。--all 同时显示远程log
+	git config --global alias.logpretty "log --pretty=format:'%C(yellow)%h %C(blue)� %C(red)%d %C(reset)%s %C(green) [%cn]' --decorate --date=short --all"
 #	git config --global alias.logpretty "log --pretty=oneline --abbrev-commit --graph --decorate"
-	git config --global alias.loggraph "log --graph --pretty=format:'%C(yellow)%h %C(blue)%d %C(reset)%s %C(white)%an, %ar%C(reset)'"
+	git config --global alias.loggraph "log --graph --pretty=format:'%C(yellow)%h %C(blue)%d %C(reset)%s %C(white)%an, %ar%C(reset)' --all"
 	git config --global alias.loglast "log -1 HEAD"
 	#undo（撤销）。undo会回退到上次提交，暂存区也会回退到那次提交时的状态。你可以进行额外的改动，用新的提交信息来再次进行提交。
 	git config --global alias.undo "reset --soft HEAD^"
