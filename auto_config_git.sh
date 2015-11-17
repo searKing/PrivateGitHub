@@ -237,6 +237,9 @@ function append_gitignore()
 	cd $g_gitignore_repo_name
 	echo "#$gitignore_name" >> "$g_gitignore_output_file_abs_name"
 	cat $gitignore_name >> "$g_gitignore_output_file_abs_name"
+	
+	#切换并获取当前脚本所在路径--恢复路径现场
+	cd "$g_shell_repositories_abs_dir"
 }
 
 #自动组合.gitignore
