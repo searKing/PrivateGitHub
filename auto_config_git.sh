@@ -88,7 +88,7 @@ HELPEOF
 	fi   	
 	set_default_cfg_param #设置默认配置参数	
 	set_default_var_param #设置默认变量参数
-		
+	unset OPTIND
 	while getopts "afo:h" opt  
 	do  
 		case $opt in
@@ -110,6 +110,7 @@ HELPEOF
 			;;  	
 		?)
 			log_error "${LINENO}:$opt is Invalid"
+			return 1
 			;;
 		*)    
 			;;  
@@ -144,7 +145,7 @@ function set_default_cfg_param(){
 	cd -
 	#gitignore文件在GitHub中的URN
 	g_gitignore_repo_name="gitignore"
-	g_gitignored_root_urn="https://github.com/github/$g_gitignore_repo_name.git"
+	g_gitignored_root_urn="https://github.com/searKing/$g_gitignore_repo_name.git"
 }
 #设置默认变量参数
 function set_default_var_param(){	
@@ -298,19 +299,22 @@ function do_work(){
 ################################################################################
 #脚本开始
 ################################################################################
-#含空格的字符串若想作为一个整体传递，则需加*
-#"$*" is equivalent to "$1c$2c...", where c is the first character of the value of the IFS variable.
-#"$@" is equivalent to "$1" "$2" ... 
-#$*、$@不加"",则无区别，
-parse_params_in "$@"
-if [ $? -ne 0 ]; then 
-	return 1
-fi
-
-do_work
-if [ $? -ne 0 ]; then
-	return 1
-fi
-log_info "$0 $@ is running successfully"
-read -n1 -p "Press any key to continue..."
-return 0 
+function shell_wrap()
+{
+	#含空格的字符串若想作为一个整体传递，则需加*
+	#"$*" is equivalent to "$1c$2c...", where c is the first character of the value of the IFS variable.
+	#"$@" is equivalent to "$1" "$2" ... 
+	#$*、$@不加"",则无区别，
+	parse_params_in "$@"
+	if [ $? -ne 0 ]; then 
+		return 1
+	fi
+	do_work
+	if [ $? -ne 0 ]; then
+		return 1
+	fi
+	log_info "$0 $@ is running successfully"
+	read -n1 -p "Press any key to continue..."
+	return 0
+}
+shell_wrap "$@"
