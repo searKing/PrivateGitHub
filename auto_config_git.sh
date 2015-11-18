@@ -182,8 +182,16 @@ function auto_config_git()
 	fi
 	git config --global merge.tool meld
 	git config --global mergetool.prompt false
+	#显示local merged remote 窗口，其实还有一个BASE窗口
+	#1) $LOCAL=the file on the branch where you are merging; untouched by the merge process when shown to you
+	#2) $REMOTE=the file on the branch from where you are merging; untouched by the merge process when shown to you
+	#3) $BASE=the common ancestor of $LOCAL and $REMOTE, ie. the point where the two branches started diverting the considered file; untouched by the merge process when shown to you
+	#4) $MERGED=the partially merged file, with conflicts; this is the only file touched by the merge process and, actually, never shown to you in meld
+	git config --global  mergetool.meld.cmd 'meld "$LOCAL" "$MERGED" "$REMOTE"'
+	
 	git config --global diff.tool meld
 	git config --global difftool.prompt false
+	git config --global difftool.meld.cmd 'meld "$LOCAL" "$REMOTE"'
 #	维护一个多人编辑的代码仓库常常意味着试着发现何人在改动什么，这个别名可以输出提交者和提交日期的log信息。--all 同时显示远程log
 	git config --global alias.logpretty "log --pretty=format:'%C(yellow)%h %C(blue)� %C(red)%d %C(reset)%s %C(green) [%cn]' --decorate --date=short --all"
 #	git config --global alias.logpretty "log --pretty=oneline --abbrev-commit --graph --decorate"
@@ -210,7 +218,7 @@ function clone_gitignores_from_GitHub()
     cd "$g_shell_repositories_abs_dir"
     if [ -d $g_gitignore_repo_name ]; then
     	if [ $g_cfg_force_mode -eq 0 ]; then    	
-			log_error "${LINENO}:"$g_gitignore_repo_name" files is already exist. Exit."
+			log_error "${LINENO}:"$g_gitignore_repo_name" files is already exist. use -f to override? Exit."
 			return 1
 		else
     		rm "$g_gitignore_repo_name" -Rf
@@ -261,7 +269,7 @@ function auto_combile_gitignores()
 			mkdir -p $gitignore_dir
 			touch $g_gitignore_output_file_abs_name		
 		else			
-			log_error "${LINENO}:"$g_gitignore_output_file_abs_name" files is already exist. Exit."
+			log_error "${LINENO}:"$g_gitignore_output_file_abs_name" files is already exist. use -f to override? Exit."
 			return 1	
 		fi
 			
