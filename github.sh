@@ -632,27 +632,28 @@ function push() {
 		log_error "${LINENO}: Push source public repo is NOT exist.EXIT"
 		return 1
 	fi
-	log_info "${LINENO}:compress "$repo_name""
+	g_repo_names=$repo_name
+	log_info "${LINENO}:compress "$g_repo_names""
 	#压缩本地的未加密的私有仓库，或广义的私有文件
-	call_func_serializable "compress" "$repo_name" 
+	call_func_serializable "compress" "$g_repo_names" 
     if [ $? -ne 0 ]; then
 		return 1
 	fi 
-	log_info "${LINENO}:encrypt "$repo_name""
+	log_info "${LINENO}:encrypt "$g_repo_names""
     #使用证书加密文件
-	call_func_serializable "encrypt" "$repo_name" 
+	call_func_serializable "encrypt" "$g_repo_names" 
     if [ $? -ne 0 ]; then
 		return 1
 	fi 
 	
 	#切换到私有仓库所在公有库的根目录
     cd "$g_private_root_dir"
-    if [ ! -z "$repo_name" ]; then
-		log_info "${LINENO}:Add "$repo_name" to Github"
-		call_func_serializable "git add" "$repo_name"
+    if [ ! -z "$g_repo_names" ]; then
+		log_info "${LINENO}:Add "$g_repo_names" to Github"
+		call_func_serializable "git add" "$g_repo_names"
 		ret=$?
 		if [ $ret -ne 0 ]; then
-			log_error "${LINENO}: git add "$repo_name" failed : $ret.EXIT"
+			log_error "${LINENO}: git add "$g_repo_names" failed : $ret.EXIT"
 			return 1
 		fi
 	fi
@@ -723,24 +724,24 @@ function pull() {
 		log_error "${LINENO}: Pull source private repo is NOT exist.EXIT"
 		return 1
 	fi
-	
+	g_repo_names=$repo_name
 	#解密本地的已加密的私有仓库
-	call_func_serializable "decrypt" "$repo_name"    
+	call_func_serializable "decrypt" "$g_repo_names"    
     if [ $? -ne 0 ]; then
 		return 1
 	fi 
     #解压本地的未加密的私有仓库，或广义的私有文件
-	call_func_serializable "extract" "$repo_name" 
+	call_func_serializable "extract" "$g_repo_names" 
     if [ $? -ne 0 ]; then
 		return 1
 	fi 
 	
     #创建工作空间并从本地未加密私有仓库clone最新副本
-	call_func_serializable "create_workspace" "$repo_name" 
+	call_func_serializable "create_workspace" "$g_repo_names" 
 	if [ $? -ne 0 ]; then
 		return 1
 	fi 
-    log_info "${LINENO}:Finish pull "$repo_name""
+    log_info "${LINENO}:Finish pull "$g_repo_names""
 }
 
 
