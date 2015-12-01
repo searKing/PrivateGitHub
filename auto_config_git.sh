@@ -173,12 +173,22 @@ function auto_config_git()
 	which vim	
 	if [ $? -ne 0 ]; then
 		sudo apt-get install vim
+		ret=$?
+		if [ $ret -ne 0 ]; then
+			log_error "${LINENO}: install vim failed($ret). Exit."
+			return 1;
+		fi
 	fi
 	git config --global core.editor vim
 	#mergetool、difftool配置
 	which meld #kdiff3
 	if [ $? -ne 0 ]; then
 		sudo apt-get install meld
+		ret=$?
+		if [ $ret -ne 0 ]; then
+			log_error "${LINENO}: install meld failed($ret). Exit."
+			return 1;
+		fi
 	fi
 	git config --global merge.tool meld
 	git config --global mergetool.prompt false
