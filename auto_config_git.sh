@@ -30,15 +30,16 @@ function usage() {
 			-o 
 				the path of the out files
 	AUTHOR 作者
-    		由 searKing Chan 完成。
+    	由 searKing Chan 完成。
 			
-       	DATE   日期
+    DATE   日期
 		2015-11-16
 
 	REPORTING BUGS 报告缺陷
-    		向 searKingChan@gmail.com 报告缺陷。	
+    	向 searKingChan@gmail.com 报告缺陷。	
+    	
 	REFERENCE	参见
-			https://github.com/searKing/GithubHub.git
+		https://github.com/searKing/PrivateGitHub.git
 USAGEEOF
 }
 

@@ -43,15 +43,16 @@ function usage() {
 				if repo_name is null , then pull all dirs on the GitHub Server
 				surrpot serializable repo_names seperated by space
 	AUTHOR 作者
-    		由 searKing Chan 完成。
+    	由 searKing Chan 完成。
 			
-       	DATE   日期
+    DATE   日期
 		2015-11-06
 
 	REPORTING BUGS 报告缺陷
-    		向 searKingChan@gmail.com 报告缺陷。	
+    	向 searKingChan@gmail.com 报告缺陷。	
+    		
 	REFERENCE	参见
-			https://github.com/searKing/GithubHub.git
+		https://github.com/searKing/PrivateGitHub.git
 USAGEEOF
 }
 #循环嵌套调用程序,每次输入一个参数
