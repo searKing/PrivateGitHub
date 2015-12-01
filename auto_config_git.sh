@@ -301,10 +301,14 @@ function auto_combile_gitignores()
 
 function do_work(){
 	auto_config_git
+    ret=$?
+	if [ $ret -ne 0 ]; then
+		return 1
+	fi 
 	
 	auto_combile_gitignores
     ret=$?
-	if [ $? -ne 0 ]; then
+	if [ $ret -ne 0 ]; then
 		return 1
 	fi 
 }
