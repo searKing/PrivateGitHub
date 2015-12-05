@@ -14,30 +14,33 @@ function log_error() {
 
 #使用方法说明
 function usage() {
-	cat<<USAGEEOF	
-	NAME  
-		$g_shell_name - 自动配置git环境 
-	SYNOPSIS  
-		source $g_shell_name [命令列表] [文件名]...   
-	DESCRIPTION  
-		$g_git_wrap_shell_name --自动配置git环境  
-			-h 
+	cat<<USAGEEOF
+	NAME
+		$g_shell_name - 自动配置git环境
+	SYNOPSIS
+		source $g_shell_name [命令列表] [文件名]...
+	DESCRIPTION
+		$g_git_wrap_shell_name --自动配置git环境
+			-h
 				get help log_info
-			-f 
+			-f
 				force mode to override exist file of the same name
-			-a 
+			-a
 				force mode to append exist file of the same name,not override
-			-o 
+			-o
 				the path of the out files
+			-p
+				use the proxy from hongxin
+				http://help.honx.in/hc/kb/article/32854/
 	AUTHOR 作者
     	由 searKing Chan 完成。
-			
+
     DATE   日期
 		2015-11-16
 
 	REPORTING BUGS 报告缺陷
-    	向 searKingChan@gmail.com 报告缺陷。	
-    	
+    	向 searKingChan@gmail.com 报告缺陷。
+
 	REFERENCE	参见
 		https://github.com/searKing/PrivateGitHub.git
 USAGEEOF
@@ -59,7 +62,7 @@ function call_func_serializable()
 		*)	#有参数函数调用
 			error_num=0
 			for curr_param in $param_in
-			do	
+			do
 				case $func_in in
 					"append_gitignore")
 						gitignore_name=$curr_param
@@ -68,79 +71,93 @@ function call_func_serializable()
 							error_num+=0
 						fi
 					 	;;
-					*) 
+					*)
 						log_error "${LINENO}:Invalid serializable cmd: $func_in"
 						return 1
 					 	;;
-				esac		
-			done	
+				esac
+			done
 			return $error_num
-			;;		
+			;;
 	esac
 }
 
 #解析输入参数
 function parse_params_in() {
-	if [ "$#" -lt 0 ]; then   
+	if [ "$#" -lt 0 ]; then
 		cat << HELPEOF
-use option -h to get more log_information .  
+use option -h to get more log_information .
 HELPEOF
-		return 1  
-	fi   	
-	set_default_cfg_param #设置默认配置参数	
+		return 1
+	fi
+	set_default_cfg_param #设置默认配置参数
 	set_default_var_param #设置默认变量参数
 	unset OPTIND
-	while getopts "afo:h" opt  
-	do  
+	while getopts "afo:h" opt
+	do
 		case $opt in
 		a)
 			#追加模式,与fwrite -a 选项相同
-			g_cfg_append_mode=1	
-			;;  
+			g_cfg_append_mode=1
+			;;
 		f)
 			#覆盖前永不提示
 			g_cfg_force_mode=1
-			;;  
+			;;
 		o)
 			#输出文件路径
 			g_cfg_output_root_dir=$OPTARG
-			;;  
-		h)  
+			;;
+		p)
+			#是否使用代理
+			g_cfg_use_proxy=1
+		h)
 			usage
-			return 1  
-			;;  	
+			return 1
+			;;
 		?)
 			log_error "${LINENO}:$opt is Invalid"
 			return 1
 			;;
-		*)    
-			;;  
-		esac  
-	done  
+		*)
+			;;
+		esac
+	done
 	#去除options参数
 	shift $(($OPTIND - 1))
-	
-	if [ "$#" -lt 0 ]; then   
+
+	if [ "$#" -lt 0 ]; then
 		cat << HELPEOF
-use option -h to get more log_information .  
+use option -h to get more log_information .
 HELPEOF
-		return 0  
-	fi   
+		return 0
+	fi
 	#获取当前动作参数--私有库名称
-	g_gitignore_names="$@"	    
+	g_gitignore_names="$@"
 	g_gitignore_output_file_abs_name="$g_cfg_output_root_dir/$g_gitignore_file_name"
+	#红杏代理
+	g_cfg_proxy_urn="${g_cfg_proxy_protocal_hongxin}://${g_cfg_proxy_hostname_hongxin}:${g_cfg_proxy_port_hongxin}"
+	g_cfg_proxy_protocal_hongxin="http"
+	g_cfg_proxy_hostname_hongxin="hx.gy"
+	g_cfg_proxy_port_hongxin="1080"
 }
 #设置默认配置参数
 function set_default_cfg_param(){
 	#开发者名字
-	g_user_name="searKing"	
+	g_user_name="searKing"
 	#开发者邮箱
-	g_user_email="searKingChan@gmail.com"	
+	g_user_email="searKingChan@gmail.com"
 	#追加模式,与fwrite -a 选项相同
-	g_cfg_append_mode=0	
+	g_cfg_append_mode=0
 	#覆盖前永不提示-f
 	g_cfg_force_mode=0
-	cd ~		
+	#是否使用代理
+	g_cfg_use_proxy=0
+	#红杏代理
+	g_cfg_proxy_protocal_hongxin="http"
+	g_cfg_proxy_hostname_hongxin="hx.gy"
+	g_cfg_proxy_port_hongxin="1080"
+	cd ~
 	#输出文件路径
 	g_cfg_output_root_dir="$(cd ~; pwd)/etc/git"
 	cd -
@@ -149,29 +166,33 @@ function set_default_cfg_param(){
 	g_gitignored_root_urn="https://github.com/searKing/$g_gitignore_repo_name.git"
 }
 #设置默认变量参数
-function set_default_var_param(){	
+function set_default_var_param(){
 	#获取当前脚本名称
-	g_shell_name="$(basename $0)" 
+	g_shell_name="$(basename $0)"
 	#切换并获取当前脚本所在路径
 	g_shell_repositories_abs_dir="$(cd `dirname $0`; pwd)"
 	#输出文件名称
-	g_gitignore_file_name="Global.gitignore"	
-	
+	g_gitignore_file_name="Global.gitignore"
+
 	#获取当前动作
 	g_gitignore_action="auto_combile_gitignores"
 	g_gitignore_names="" #当前动作参数--.gitignore文件名称
 }
 #自动补全脚本环境搭建
 function auto_config_git()
-{	
+{
 	git config --global user.name "$g_user_name"
 	git config --global user.email "$g_user_email"
 	#支持稀疏检出
 	git config --global core.sparseCheckout true
 	#git add等乱码
 	git config --global core.quotepath false
+	#设置代理
+	if [[ $g_cfg_use_proxy -ne 0 ]]; then
+		git config --global http.proxy "${g_cfg_proxy_urn}"
+	fi
 	#设置git默认编辑器--git rebase -i 时需要vim
-	which vim	
+	which vim
 	if [ $? -ne 0 ]; then
 		sudo apt-get install vim
 		ret=$?
@@ -199,7 +220,7 @@ function auto_config_git()
 	#3) $BASE=the common ancestor of $LOCAL and $REMOTE, ie. the point where the two branches started diverting the considered file; untouched by the merge process when shown to you
 	#4) $MERGED=the partially merged file, with conflicts; this is the only file touched by the merge process and, actually, never shown to you in meld
 	git config --global  mergetool.meld.cmd 'meld "$LOCAL" "$MERGED" "$REMOTE"'
-	
+
 	git config --global diff.tool meld
 	git config --global difftool.prompt false
 	git config --global difftool.meld.cmd 'meld "$LOCAL" "$REMOTE"'
@@ -214,7 +235,7 @@ function auto_config_git()
 	#这个别名用来在一天的开启时回顾你昨天做了啥，或是在早晨刷新你的记忆
 	git config --global alias.standup "log --since '1 day ago' --oneline --author searKingChan@gmail.com"
 	#在提交前瞧瞧你将要提交的都有什么改动是一个好习惯，这可以帮助你发现拼写错误、不小心的提交敏感信息、将代码组织成符合逻辑的组。使用git add暂存你的改动，然后使用git ds查看你将要提交的改动动。
-	
+
 }
 
 #从GitHub 克隆私有库所在公有库的根目录
@@ -229,7 +250,7 @@ function clone_gitignores_from_GitHub()
 	#切换并获取当前脚本所在路径
     cd "$g_shell_repositories_abs_dir"
     if [ -d $g_gitignore_repo_name ]; then
-    	if [ $g_cfg_force_mode -eq 0 ]; then    	
+    	if [ $g_cfg_force_mode -eq 0 ]; then
 			log_error "${LINENO}:"$g_gitignore_repo_name" files is already exist. use -f to override? Exit."
 			return 1
 		else
@@ -241,30 +262,30 @@ function clone_gitignores_from_GitHub()
 	if [ $ret -ne 0 ]; then
 		log_error "${LINENO}:git clone $g_gitignored_root_urn failed : $ret"
 		return 1
-	fi 
+	fi
 }
 #将所有的.gitignore文件拼接为一个文件
 function append_gitignore()
-{	
+{
 	expected_params_in_num=1
 	if [ $# -ne $expected_params_in_num ]; then
 		log_error "${LINENO}:$0 expercts $expected_params_in_num param_in, but receive only $#. EXIT"
 		return 1;
 	fi
-	gitignore_name=$1	
+	gitignore_name=$1
 	#切换并获取当前脚本所在路径
 	cd "$g_shell_repositories_abs_dir"
 	cd $g_gitignore_repo_name
 	echo "#$gitignore_name" >> "$g_gitignore_output_file_abs_name"
 	cat $gitignore_name >> "$g_gitignore_output_file_abs_name"
-	
+
 	#切换并获取当前脚本所在路径--恢复路径现场
 	cd "$g_shell_repositories_abs_dir"
 }
 
 #自动组合.gitignore
 function auto_combile_gitignores()
-{	
+{
 	expected_params_in_num=0
 	if [ $# -ne $expected_params_in_num ]; then
 		log_error "${LINENO}:$0 expercts $expected_params_in_num param_in, but receive only $#. EXIT"
@@ -273,18 +294,18 @@ function auto_combile_gitignores()
 	#切换并获取当前脚本所在路径
 	cd "$g_shell_repositories_abs_dir"
 	#获取文件绝对路径
-	
-	gitignore_dir=${g_gitignore_output_file_abs_name%/*}	
+
+	gitignore_dir=${g_gitignore_output_file_abs_name%/*}
 	if [ -e "$g_gitignore_output_file_abs_name" ]; then
 		if ([ $g_cfg_append_mode -eq 0 ]|| ([ -d "$g_gitignore_output_file_abs_name" ]	&& [ $g_cfg_force_mode -ne 0 ])); then
-			rm $g_gitignore_output_file_abs_name -Rf		
+			rm $g_gitignore_output_file_abs_name -Rf
 			mkdir -p $gitignore_dir
-			touch $g_gitignore_output_file_abs_name		
-		else			
+			touch $g_gitignore_output_file_abs_name
+		else
 			log_error "${LINENO}:"$g_gitignore_output_file_abs_name" files is already exist. use -f to override? Exit."
-			return 1	
+			return 1
 		fi
-			
+
 	else
 		mkdir -p $gitignore_dir
 		touch $g_gitignore_output_file_abs_name
@@ -293,20 +314,20 @@ function auto_combile_gitignores()
     ret=$?
 	if [ $ret -ne 0 ]; then
 		return 1
-	fi 
+	fi
 	cd $g_gitignore_repo_name
     gitignore_names=$(find . -type f -name '*.gitignore')
-	#去除./	
+	#去除./
 	gitignore_names=${gitignore_names//.\//}
 	if [ "$gitignore_names"x == x ]; then
 		log_error "${LINENO}: gitignore files is NOT exist.EXIT"
 		return 1
 	fi
-	call_func_serializable "append_gitignore" "$gitignore_names"	
+	call_func_serializable "append_gitignore" "$gitignore_names"
 	ret=$?
 	if [ $? -ne 0 ]; then
 		return 1
-	fi 
+	fi
 	git config --global --replace-all core.excludesfile "$g_gitignore_output_file_abs_name"
 }
 
@@ -315,13 +336,13 @@ function do_work(){
     ret=$?
 	if [ $ret -ne 0 ]; then
 		return 1
-	fi 
-	
+	fi
+
 	auto_combile_gitignores
     ret=$?
 	if [ $ret -ne 0 ]; then
 		return 1
-	fi 
+	fi
 }
 ################################################################################
 #脚本开始
@@ -330,10 +351,10 @@ function shell_wrap()
 {
 	#含空格的字符串若想作为一个整体传递，则需加*
 	#"$*" is equivalent to "$1c$2c...", where c is the first character of the value of the IFS variable.
-	#"$@" is equivalent to "$1" "$2" ... 
+	#"$@" is equivalent to "$1" "$2" ...
 	#$*、$@不加"",则无区别，
 	parse_params_in "$@"
-	if [ $? -ne 0 ]; then 
+	if [ $? -ne 0 ]; then
 		return 1
 	fi
 	do_work
