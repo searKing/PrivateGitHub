@@ -93,7 +93,7 @@ HELPEOF
 	set_default_cfg_param #设置默认配置参数
 	set_default_var_param #设置默认变量参数
 	unset OPTIND
-	while getopts "afo:h" opt
+	while getopts "afpo:h" opt
 	do
 		case $opt in
 		a)
@@ -111,6 +111,7 @@ HELPEOF
 		p)
 			#是否使用代理
 			g_cfg_use_proxy=1
+			;;
 		h)
 			usage
 			return 1
