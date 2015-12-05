@@ -30,7 +30,7 @@ function usage() {
 			-o
 				the path of the out files
 			-p
-				use the proxy from hongxin
+				use the proxy from hongxin(not recommend, may can not cross the Great Fire Wall)
 				http://help.honx.in/hc/kb/article/32854/
 	AUTHOR 作者
     	由 searKing Chan 完成。
