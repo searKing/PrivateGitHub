@@ -125,7 +125,7 @@ HELPEOF
 		esac
 	done
 	#去除options参数
-	shift $(($OPTIND - 1))
+	shift $((OPTIND - 1))
 
 	if [ "$#" -lt 0 ]; then
 		cat << HELPEOF
@@ -133,8 +133,7 @@ use option -h to get more log_information .
 HELPEOF
 		return 0
 	fi
-	#获取当前动作参数--私有库名称
-	g_gitignore_names="$@"
+	#配置文件输出路径
 	g_gitignore_output_file_abs_name="$g_cfg_output_root_dir/$g_gitignore_file_name"
 	#红杏代理
 	g_cfg_proxy_urn="${g_cfg_proxy_protocal_hongxin}://${g_cfg_proxy_hostname_hongxin}:${g_cfg_proxy_port_hongxin}"
@@ -169,15 +168,11 @@ function set_default_cfg_param(){
 #设置默认变量参数
 function set_default_var_param(){
 	#获取当前脚本名称
-	g_shell_name="$(basename $0)"
+	g_shell_name="$(basename "$0")"
 	#切换并获取当前脚本所在路径
-	g_shell_repositories_abs_dir="$(cd `dirname $0`; pwd)"
+	g_shell_repositories_abs_dir="$(cd "$(dirname "$0")"; pwd)"
 	#输出文件名称
 	g_gitignore_file_name="Global.gitignore"
-
-	#获取当前动作
-	g_gitignore_action="auto_combile_gitignores"
-	g_gitignore_names="" #当前动作参数--.gitignore文件名称
 }
 #自动补全脚本环境搭建
 function auto_config_git()
@@ -220,16 +215,19 @@ function auto_config_git()
 	#2) $REMOTE=the file on the branch from where you are merging; untouched by the merge process when shown to you
 	#3) $BASE=the common ancestor of $LOCAL and $REMOTE, ie. the point where the two branches started diverting the considered file; untouched by the merge process when shown to you
 	#4) $MERGED=the partially merged file, with conflicts; this is the only file touched by the merge process and, actually, never shown to you in meld
-	git config --global  mergetool.meld.cmd 'meld "$LOCAL" "$MERGED" "$REMOTE"'
+	git config --global  mergetool.meld.cmd "meld \$LOCAL \$MERGED \$REMOTE"
 
 	git config --global diff.tool meld
 	git config --global difftool.prompt false
-	git config --global difftool.meld.cmd 'meld "$LOCAL" "$REMOTE"'
+	git config --global difftool.meld.cmd "meld \$LOCAL \$REMOTE"
 #	维护一个多人编辑的代码仓库常常意味着试着发现何人在改动什么，这个别名可以输出提交者和提交日期的log信息。--all 同时显示远程log
-	git config --global alias.logpretty "log --pretty=format:'%C(yellow)%h %C(blue)� %C(red)%d %C(reset)%s %C(green) [%cn]' --decorate --date=short --all"
+	git config --global alias.logpretty "log --pretty=format:'%C(yellow)%h %C(blue)� %C(red)%d %C(reset)%s %C(green) [%cn]' --decorate --date=short"
+	git config --global alias.logprettyall "log --pretty=format:'%C(yellow)%h %C(blue)� %C(red)%d %C(reset)%s %C(green) [%cn]' --decorate --date=short --all"
 #	git config --global alias.logpretty "log --pretty=oneline --abbrev-commit --graph --decorate"
-	git config --global alias.loggraph "log --graph --pretty=format:'%C(yellow)%h %C(blue)%d %C(reset)%s %C(white)%an, %ar%C(reset)' --all"
-	git config --global alias.loggraphstat "log --graph --pretty=format:'%C(yellow)%h %C(blue)%d %C(reset)%s %C(white)%an, %ar%C(reset)' --all --stat"
+	git config --global alias.loggraph "log --graph --pretty=format:'%C(yellow)%h %C(blue)%d %C(reset)%s %C(white)%an, %ar%C(reset)' --abbrev-commit"
+	git config --global alias.loggraphall "log --graph --pretty=format:'%C(yellow)%h %C(blue)%d %C(reset)%s %C(white)%an, %ar%C(reset)' --abbrev-commit --all"
+	git config --global alias.loggraphstat "log --graph --pretty=format:'%C(yellow)%h %C(blue)%d %C(reset)%s %C(white)%an, %ar%C(reset)' --stat"
+	git config --global alias.loggraphstatall "log --graph --pretty=format:'%C(yellow)%h %C(blue)%d %C(reset)%s %C(white)%an, %ar%C(reset)' --all --stat"
 	git config --global alias.loglast "log -1 HEAD"
 	#undo（撤销）。undo会回退到上次提交，暂存区也会回退到那次提交时的状态。你可以进行额外的改动，用新的提交信息来再次进行提交。
 	git config --global alias.undo "reset --soft HEAD^"
@@ -252,7 +250,7 @@ function clone_gitignores_from_GitHub()
     cd "$g_shell_repositories_abs_dir"
     if [ -d $g_gitignore_repo_name ]; then
     	if [ $g_cfg_force_mode -eq 0 ]; then
-			log_error "${LINENO}:"$g_gitignore_repo_name" files is already exist. use -f to override? Exit."
+			log_error "${LINENO}:$g_gitignore_repo_name files is already exist. use -f to override? Exit."
 			return 1
 		else
     		rm "$g_gitignore_repo_name" -Rf
@@ -278,7 +276,7 @@ function append_gitignore()
 	cd "$g_shell_repositories_abs_dir"
 	cd $g_gitignore_repo_name
 	echo "#$gitignore_name" >> "$g_gitignore_output_file_abs_name"
-	cat $gitignore_name >> "$g_gitignore_output_file_abs_name"
+	cat "$gitignore_name" >> "$g_gitignore_output_file_abs_name"
 
 	#切换并获取当前脚本所在路径--恢复路径现场
 	cd "$g_shell_repositories_abs_dir"
@@ -299,17 +297,17 @@ function auto_combile_gitignores()
 	gitignore_dir=${g_gitignore_output_file_abs_name%/*}
 	if [ -e "$g_gitignore_output_file_abs_name" ]; then
 		if ([ $g_cfg_append_mode -eq 0 ]|| ([ -d "$g_gitignore_output_file_abs_name" ]	&& [ $g_cfg_force_mode -ne 0 ])); then
-			rm $g_gitignore_output_file_abs_name -Rf
-			mkdir -p $gitignore_dir
-			touch $g_gitignore_output_file_abs_name
+			rm "$g_gitignore_output_file_abs_name" -Rf
+			mkdir -p "$gitignore_dir"
+			touch "$g_gitignore_output_file_abs_name"
 		else
-			log_error "${LINENO}:"$g_gitignore_output_file_abs_name" files is already exist. use -f to override? Exit."
+			log_error "${LINENO}:$g_gitignore_output_file_abs_name files is already exist. use -f to override? Exit."
 			return 1
 		fi
 
 	else
-		mkdir -p $gitignore_dir
-		touch $g_gitignore_output_file_abs_name
+		mkdir -p "$gitignore_dir"
+		touch "$g_gitignore_output_file_abs_name"
 	fi
     clone_gitignores_from_GitHub
     ret=$?
