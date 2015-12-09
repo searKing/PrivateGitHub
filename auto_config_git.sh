@@ -218,10 +218,13 @@ function auto_config_git()
 	git config --global core.sparseCheckout true
 	#git add等乱码
 	git config --global core.quotepath false
+	#高亮配置
+	git config --global color.ui auto
 	#设置代理
 	if [[ $g_cfg_use_proxy -ne 0 ]]; then
 		git config --global http.proxy "${g_cfg_proxy_urn}"
 	fi
+
 	#设置git默认编辑器--git rebase -i 时需要vim
 	install_apt_app_from_ubuntu "vim"
 	if [ $? -ne 0 ]; then
