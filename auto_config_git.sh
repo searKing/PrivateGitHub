@@ -23,6 +23,9 @@ function usage() {
 		$g_git_wrap_shell_name --自动配置git环境
 			-h
 				get help log_info
+				FAST STEP BY STEP
+					http://www.cnblogs.com/BeginMan/p/3591005.html
+					http://www.oschina.net/translate/a-successful-git-branching-model
 			-f
 				force mode to override exist file of the same name
 			-a
