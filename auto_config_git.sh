@@ -27,6 +27,8 @@ function usage() {
 				force mode to override exist file of the same name
 			-a
 				force mode to append exist file of the same name,not override
+			-v
+				verbose display
 			-o
 				the path of the out files
 			-p
@@ -93,7 +95,7 @@ HELPEOF
 	set_default_cfg_param #设置默认配置参数
 	set_default_var_param #设置默认变量参数
 	unset OPTIND
-	while getopts "afpo:h" opt
+	while getopts "afo:vph" opt
 	do
 		case $opt in
 		a)
@@ -107,6 +109,10 @@ HELPEOF
 		o)
 			#输出文件路径
 			g_cfg_output_root_dir=$OPTARG
+			;;
+		v)
+			#是否显示详细信息
+			g_cfg_visual=1
 			;;
 		p)
 			#是否使用代理
@@ -141,6 +147,33 @@ HELPEOF
 	g_cfg_proxy_hostname_hongxin="hx.gy"
 	g_cfg_proxy_port_hongxin="1080"
 }
+
+#安装apt应用
+function install_apt_app_from_ubuntu()
+{
+	expected_params_in_num=1
+	if [ $# -ne $expected_params_in_num ]; then
+		log_error "${LINENO}:$FUNCNAME expercts $expected_params_in_num param_in, but receive only $#. EXIT"
+		return 1;
+	fi
+	app_name=$1
+	#检测是否安装成功app
+	if [ $g_cfg_visual -ne 0 ]; then
+		which "$app_name"
+	else
+		which "$app_name"	1>/dev/null
+	fi
+
+	if [ $? -ne 0 ]; then
+		sudo apt-get install -y "$app_name"
+		ret=$?
+		if [ $ret -ne 0 ]; then
+			log_error "${LINENO}: install $app_name failed<$ret>. Exit."
+			return 1;
+		fi
+	fi
+}
+
 #设置默认配置参数
 function set_default_cfg_param(){
 	#开发者名字
@@ -157,6 +190,8 @@ function set_default_cfg_param(){
 	g_cfg_proxy_protocal_hongxin="http"
 	g_cfg_proxy_hostname_hongxin="hx.gy"
 	g_cfg_proxy_port_hongxin="1080"
+	#是否显示详细信息
+	g_cfg_visual=0
 	cd ~
 	#输出文件路径
 	g_cfg_output_root_dir="$(cd ~; pwd)/etc/git"
@@ -188,26 +223,18 @@ function auto_config_git()
 		git config --global http.proxy "${g_cfg_proxy_urn}"
 	fi
 	#设置git默认编辑器--git rebase -i 时需要vim
-	which vim
+	install_apt_app_from_ubuntu "vim"
 	if [ $? -ne 0 ]; then
-		sudo apt-get install vim
-		ret=$?
-		if [ $ret -ne 0 ]; then
-			log_error "${LINENO}: install vim failed($ret). Exit."
-			return 1;
-		fi
+		return 1;
 	fi
+
 	git config --global core.editor vim
 	#mergetool、difftool配置
-	which meld #kdiff3
+	install_apt_app_from_ubuntu "meld" #kdiff3
 	if [ $? -ne 0 ]; then
-		sudo apt-get install meld
-		ret=$?
-		if [ $ret -ne 0 ]; then
-			log_error "${LINENO}: install meld failed($ret). Exit."
-			return 1;
-		fi
+		return 1;
 	fi
+
 	git config --global merge.tool meld
 	git config --global mergetool.prompt false
 	#显示local merged remote 窗口，其实还有一个BASE窗口
@@ -220,6 +247,23 @@ function auto_config_git()
 	git config --global diff.tool meld
 	git config --global difftool.prompt false
 	git config --global difftool.meld.cmd "meld \$LOCAL \$REMOTE"
+
+	#安装图形界面gitk,分支、版本信息用这个清晰明了
+	install_apt_app_from_ubuntu "gitk"
+	if [ $? -ne 0 ]; then
+		return 1;
+	fi
+
+	which meld #kdiff3
+	if [ $? -ne 0 ]; then
+		sudo apt-get install meld
+		ret=$?
+		if [ $ret -ne 0 ]; then
+			log_error "${LINENO}: install meld failed($ret). Exit."
+			return 1;
+		fi
+	fi
+
 #	维护一个多人编辑的代码仓库常常意味着试着发现何人在改动什么，这个别名可以输出提交者和提交日期的log信息。--all 同时显示远程log
 	git config --global alias.logpretty "log --pretty=format:'%C(yellow)%h %C(blue)� %C(red)%d %C(reset)%s %C(green) [%cn]' --decorate --date=short"
 	git config --global alias.logprettyall "log --pretty=format:'%C(yellow)%h %C(blue)� %C(red)%d %C(reset)%s %C(green) [%cn]' --decorate --date=short --all"
