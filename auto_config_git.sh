@@ -365,7 +365,8 @@ function auto_combile_gitignores()
 		return 1
 	fi
 	cd $g_gitignore_repo_name
-    gitignore_names=$(find . -type f -name '*.gitignore')
+    gitignore_names=$(find . -type f -name '*.gitignore' \
+		-not -name "ArchLinuxPackages.gitignore")
 	#去除./
 	gitignore_names=${gitignore_names//.\//}
 	if [ "$gitignore_names"x == x ]; then
