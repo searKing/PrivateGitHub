@@ -15,44 +15,51 @@ function log_error() {
 #使用方法说明
 function usage() {
 	cat<<USAGEEOF	
-	NAME  
-		$g_git_wrap_shell_name - 将任意数量的git仓库加密到托管在Github.com上的root git仓库中 
-	SYNOPSIS  
-		$g_git_wrap_shell_name [命令列表] [文件名]...   
-	DESCRIPTION  
-		$g_git_wrap_shell_name --将git仓库加密到托管在Github.com上的root git仓库中 
-			-h 
-				get help log_info
-			-f 
-				force mode to override exist file of the same name
-			-m 	comment_content
-				comment with the comment content
-			req	
-				Create git.private.pem and git.public.pem under ~/g_key_root_dir. Then create leaf directory under this direcotry and git-clone root from Github.		
-			create
-				create local public repo and workspace		
-				NOTE: A Github repo called root should be created on github.com beforehand.
-				surrpot serializable repo_names seperated by space
-			push repo_name
-				Make directory repo_name under g_public_root_dir/ to an compressed archived file into g_private_root_dir/ with the same name.
-				Then add this archived file to git and push it to remote.
-				if repo_name is null , then push all dirs under the g_public_root_dir/
-				surrpot serializable repo_names seperated by space
-			pull repo_name
-				Pull the update files from github to root. Decompress file repo_name under g_private_root_dir/ to g_public_root_dir/.
-				if repo_name is null , then pull all dirs on the GitHub Server
-				surrpot serializable repo_names seperated by space
-	AUTHOR 作者
-    	由 searKing Chan 完成。
-			
-    DATE   日期
-		2015-11-06
+NAME  
+    $g_git_wrap_shell_name - 将任意数量的git仓库加密到托管在Github.com上的root git仓库中 
+SYNOPSIS  
+    $g_git_wrap_shell_name [命令列表] [文件名]...   
+DESCRIPTION  
+	$g_git_wrap_shell_name --将git仓库加密到托管在Github.com上的root git仓库中 
+		-h 
+			get help log_info
+		-f 
+			force mode to override exist file of the same name
+		-m 	comment_content
+			comment with the comment content
+		req	
+			Create git.private.pem and git.public.pem under $g_key_root_dir. 
+		create
+			create local public repo and workspace		
+			NOTE: A Github repo called $g_private_root_dir should be created on github.com beforehand.
+			support serializable repo_names seperated by space
+		push repo_name
+			Make directory repo_name under $g_public_root_dir/ to an compressed archived file into $g_private_root_dir/ with the same name.
+			Then add this archived file to git and push it to remote.
+			if repo_name is null , then push all dirs under the $g_public_root_dir/
+			surrpot serializable repo_names seperated by space
+		pull repo_name
+			Pull the update files from github to root. Decompress file repo_name under $g_private_root_dir/ to g_public_root_dir/.
+			if repo_name is null , then pull all dirs on the GitHub Server
+			surrpot serializable repo_names seperated by space
+CHEAT
+    ./github.sh req
+    THEN create leaf directory under this direcotry and git-clone $g_private_root_urn from Github.		
+    ./github.sh create
+    ./github.sh push repo_name
+    ./github.sh pull repo_name
 
-	REPORTING BUGS 报告缺陷
-    	向 searKingChan@gmail.com 报告缺陷。	
+AUTHOR 作者
+    由 searKing Chan 完成。
+			
+DATE   日期
+    2015-11-06
+
+REPORTING BUGS 报告缺陷
+    向 searKingChan@gmail.com 报告缺陷。	
     		
-	REFERENCE	参见
-		https://github.com/searKing/PrivateGitHub.git
+REFERENCE	参见
+	https://github.com/searKing/PrivateGitHub.git
 USAGEEOF
 }
 #循环嵌套调用程序,每次输入一个参数
@@ -142,8 +149,8 @@ function set_default_var_param(){
 #解析输入参数
 function parse_params_in() {
 	if [ "$#" -lt 1 ]; then   
-		cat << HELPEOF
-		use option -h to get more log_information .  
+        cat << HELPEOF
+use option -h to get more log_information.  
 HELPEOF
 		return 1  
 	fi   	
@@ -176,7 +183,7 @@ HELPEOF
 	
 	if [ "$#" -lt 1 ]; then   
 		cat << HELPEOF
-		use option -h to get more log_information .  
+use option -h to get more log_information .  
 HELPEOF
 		return 0  
 	fi   
